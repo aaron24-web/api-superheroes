@@ -1,74 +1,60 @@
-import heroRepository from '../repositories/heroRepository.js'
+import heroRepository from '../repositories/heroRepository.js';
 
 async function getAllHeroes() {
-    return await heroRepository.getHeroes()
+    return await heroRepository.getHeroes();
+}
+
+async function getHeroById(id) {
+    const heroes = await heroRepository.getHeroes();
+    return heroes.find(h => h.id === parseInt(id));
 }
 
 async function addHero(hero) {
-    if (!hero.name || !hero.alias) {
-        throw new Error("El héroe debe tener un nombre y un alias.");
-    }
-
     const heroes = await heroRepository.getHeroes();
-
-    const newId = heroes.length > 0 ? Math.max(...heroes.map(h => h.id)) + 1 : 1;
-    const newHero = { ...hero, id: newId };
-
-    heroes.push(newHero);
+    hero.id = heroes.length > 0 ? Math.max(...heroes.map(h => h.id)) + 1 : 1;
+    heroes.push(hero);
     await heroRepository.saveHeroes(heroes);
-
-    return newHero;
+    return hero;
 }
 
-async function updateHero(id, updatedHero) {
+async function updateHero(id, heroData) {
     const heroes = await heroRepository.getHeroes();
-    const index = heroes.findIndex(hero => hero.id === parseInt(id));
-
-    if (index === -1) {
-        throw new Error('Héroe no encontrado');
-    }
-
-    delete updatedHero.id;
-    heroes[index] = { ...heroes[index], ...updatedHero };
-
+    const index = heroes.findIndex(h => h.id === parseInt(id));
+    if (index === -1) throw new Error('Héroe no encontrado');
+    
+    heroes[index] = { ...heroes[index], ...heroData };
     await heroRepository.saveHeroes(heroes);
     return heroes[index];
 }
 
-
 async function deleteHero(id) {
-    const heroes = await heroRepository.getHeroes();
-    const index = heroes.findIndex(hero => hero.id === parseInt(id));
-
-    if (index === -1) {
-        throw new Error('Héroe no encontrado');
-    }
-
-    const filteredHeroes = heroes.filter(hero => hero.id !== parseInt(id));
-    await heroRepository.saveHeroes(filteredHeroes);
+    let heroes = await heroRepository.getHeroes();
+    const initialLength = heroes.length;
+    heroes = heroes.filter(h => h.id !== parseInt(id));
+    if (heroes.length === initialLength) throw new Error('Héroe no encontrado');
+    
+    await heroRepository.saveHeroes(heroes);
     return { message: 'Héroe eliminado' };
 }
 
+// Las demás funciones de tu servicio...
 async function findHeroesByCity(city) {
-  const heroes = await heroRepository.getHeroes();
-  return heroes.filter(hero => hero.city.toLowerCase() === city.toLowerCase());
+    const heroes = await heroRepository.getHeroes();
+    return heroes.filter(h => h.city.toLowerCase() === city.toLowerCase());
 }
 
-async function faceVillain(heroId, villain) {
-  const heroes = await heroRepository.getHeroes();
-  const hero = heroes.find(hero => hero.id === parseInt(heroId));
-  if (!hero) {
-    throw new Error('Héroe no encontrado');
-  }
-  return `${hero.alias} enfrenta a ${villain}`;
+async function faceVillain(heroId, villainName) {
+    const hero = await getHeroById(heroId);
+    if (!hero) throw new Error('Héroe no encontrado para enfrentar al villano');
+    return `${hero.alias} está enfrentando a ${villainName}!`;
 }
-
 
 export default {
-  getAllHeroes,
-  addHero,
-  updateHero,
-  deleteHero,
-  findHeroesByCity,
-  faceVillain
+    getAllHeroes,
+    getHeroById,
+    addHero,
+    updateHero,
+    deleteHero,
+    findHeroesByCity,
+    faceVillain
 };

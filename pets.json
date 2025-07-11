@@ -1,0 +1,23 @@
+[
+  {
+    "id": 1,
+    "name": "Krypto",
+    "type": "Perro",
+    "superpower": "Super fuerza, vuelo",
+    "heroId": 2
+  },
+  {
+    "id": 2,
+    "name": "Ace el Bati-sabueso",
+    "type": "Perro",
+    "superpower": "Habilidades de detective",
+    "heroId": 1
+  },
+  {
+    "id": 3,
+    "name": "Mbappe",
+    "type": "Tortuga",
+    "superpower": "Desaparecer",
+    "heroId": 31
+  }
+]
