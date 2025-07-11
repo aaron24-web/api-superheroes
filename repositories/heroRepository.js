@@ -1,7 +1,7 @@
 import fs from 'fs-extra'
 import Hero from '../models/heroModel.js'
 
-const filePath = './data/superheroes.json' // Verificar la ruta que tu configuraste en tu proyecto.
+const filePath = './superheroes.json' // Verificar la ruta que tu configuraste en tu proyecto.
 
 async function getHeroes() {
     try {

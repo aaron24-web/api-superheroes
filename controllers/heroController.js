@@ -5,30 +5,32 @@ import Hero from "../models/heroModel.js";
 
 const router = express.Router();
 
+// Ruta para obtener todos los héroes
 router.get("/heroes", async (req, res) => {
     try {
-        const heroes = await heroService.getAllHeroes();
+        const heroes = await heroServices.getAllHeroes();
         res.json(heroes);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
 
+// Ruta para crear un nuevo héroe
 router.post("/heroes",
     [
         check('name').not().isEmpty().withMessage('El nombre es requerido'),
         check('alias').not().isEmpty().withMessage('El alias es requerido')
-    ], 
+    ],
     async (req, res) => {
-        const errors = validationResult(req)
+        const errors = validationResult(req);
         if(!errors.isEmpty()){
-            return res.status(400).json({ error : errors.args()})
+            return res.status(400).json({ errors: errors.array() });
         }
 
         try {
             const { name, alias, city, team } = req.body;
             const newHero = new Hero(null, name, alias, city, team);
-            const addedHero = await heroService.addHero(newHero);
+            const addedHero = await heroServices.addHero(newHero);
 
             res.status(201).json(addedHero);
         } catch (error) {
@@ -36,40 +38,44 @@ router.post("/heroes",
         }
 });
 
+// Ruta para actualizar un héroe por su ID
 router.put("/heroes/:id", async (req, res) => {
     try {
-        const updatedHero = await heroService.updateHero(req.params.id, req.body);
+        const updatedHero = await heroServices.updateHero(req.params.id, req.body);
         res.json(updatedHero);
     } catch (error) {
         res.status(404).json({ error: error.message });
     }
 });
 
+// Ruta para eliminar un héroe por su ID
 router.delete('/heroes/:id', async (req, res) => {
     try {
-        const result = await heroService.deleteHero(req.params.id);
+        const result = await heroServices.deleteHero(req.params.id);
         res.json(result);
     } catch (error) {
         res.status(404).json({ error: error.message });
     }
 });
 
+// Ruta para buscar héroes por ciudad
 router.get('/heroes/city/:city', async (req, res) => {
   try {
-    const heroes = await heroService.findHeroesByCity(req.params.city);
+    const heroes = await heroServices.findHeroesByCity(req.params.city);
     res.json(heroes);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
+// Ruta para enfrentar a un villano
 router.post('/heroes/:id/enfrentar', async (req, res) => {
   try {
-    const result = await heroService.faceVillain(req.params.id, req.body.villain);
+    const result = await heroServices.faceVillain(req.params.id, req.body.villain);
     res.json({ message: result });
   } catch (err) {
     res.status(404).json({ error: err.message });
   }
 });
 
-export default router
+export default router;
