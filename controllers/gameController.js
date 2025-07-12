@@ -54,4 +54,24 @@ router.post("/game/walk", async (req, res) => {
     }
 });
 
+// Curar a la mascota activa
+router.post("/game/cure", async (req, res) => {
+    try {
+        const result = await gameService.curePet();
+        res.status(200).json(result);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+// Revertir la personalidad de la mascota activa
+router.post("/game/revert-personality", async (req, res) => {
+    try {
+        const result = await gameService.revertPersonality();
+        res.status(200).json(result);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
 export default router;

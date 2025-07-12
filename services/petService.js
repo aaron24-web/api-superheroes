@@ -1,20 +1,15 @@
-// services/petService.js
-
 import petRepository from '../repositories/petRepository.js';
 import heroRepository from '../repositories/heroRepository.js';
+import gameService from './gameService.js'; // Importamos el servicio de juego
 
-// --- FUNCIÓN MODIFICADA ---
-// Ahora devuelve solo el nombre del dueño para no repetir información
+// --- Funciones del Servicio de Mascotas (CRUD) ---
+
 async function getPetById(id) {
     const pet = (await petRepository.getPets()).find(p => p.id === parseInt(id));
-
-    if (!pet) {
-        throw new Error('Mascota no encontrada');
-    }
+    if (!pet) throw new Error('Mascota no encontrada');
 
     const owner = (await heroRepository.getHeroes()).find(hero => hero.id === pet.heroId);
 
-    // Devolvemos toda la info de la mascota y solo el nombre del dueño
     return {
         id: pet.id,
         name: pet.name,
@@ -25,10 +20,10 @@ async function getPetById(id) {
     };
 }
 
-// --- El resto de las funciones no necesitan cambios ---
 async function getAllPetsWithOwners() {
     const pets = await petRepository.getPets();
     const heroes = await heroRepository.getHeroes();
+
     return pets.map(pet => {
         const owner = heroes.find(hero => hero.id === pet.heroId);
         return {
@@ -47,7 +42,10 @@ async function createPet(petData) {
     if (!ownerExists) throw new Error('El superhéroe dueño especificado no existe');
 
     const heroIsTaken = pets.find(p => p.heroId === petData.heroId);
-    if (heroIsTaken) throw new Error(`El superhéroe ${ownerExists.name} ya tiene una mascota asignada`);
+    if (heroIsTaken) throw new Error(`El superhéroe ${ownerExists.name} ya tiene una mascota asignada.`);
+
+    // Asigna la personalidad aleatoria al crear
+    gameService.assignInitialPersonality(petData); 
 
     petData.id = pets.length > 0 ? Math.max(...pets.map(p => p.id)) + 1 : 1;
     pets.push(petData);
@@ -57,17 +55,16 @@ async function createPet(petData) {
 
 async function updatePet(id, petData) {
     const pets = await petRepository.getPets();
-    const heroes = await heroRepository.getHeroes();
-    
     const petIndex = pets.findIndex(p => p.id === parseInt(id));
     if (petIndex === -1) throw new Error('Mascota no encontrada');
     
     if (petData.heroId && petData.heroId !== pets[petIndex].heroId) {
+        const heroes = await heroRepository.getHeroes();
         const newOwnerExists = heroes.find(h => h.id === petData.heroId);
         if (!newOwnerExists) throw new Error('El nuevo superhéroe dueño no existe');
 
         const newOwnerIsTaken = pets.find(p => p.heroId === petData.heroId);
-        if (newOwnerIsTaken) throw new Error(`El superhéroe ${newOwnerExists.name} ya tiene una mascota asignada`);
+        if (newOwnerIsTaken) throw new Error(`El superhéroe ${newOwnerExists.name} ya tiene una mascota asignada.`);
     }
 
     pets[petIndex] = { ...pets[petIndex], ...petData };
@@ -80,10 +77,12 @@ async function deletePet(id) {
     const initialLength = pets.length;
     pets = pets.filter(p => p.id !== parseInt(id));
     if (pets.length === initialLength) throw new Error('Mascota no encontrada para eliminar');
+    
     await petRepository.savePets(pets);
     return { message: 'Mascota eliminada' };
 }
 
+// --- La exportación por defecto es la clave ---
 export default {
     getPetById,
     getAllPetsWithOwners,

@@ -1,4 +1,3 @@
-// controllers/petController.js
 import express from 'express';
 import petService from '../services/petService.js';
 import Pet from '../models/petModel.js';
@@ -15,23 +14,23 @@ router.get("/pets", async (req, res) => {
     }
 });
 
-// --- NUEVA RUTA ---
 // GET /pets/:id - Obtener una mascota por su ID
 router.get("/pets/:id", async (req, res) => {
     try {
         const pet = await petService.getPetById(req.params.id);
         res.json(pet);
     } catch (error) {
-        // Si el servicio lanza un error (ej. no encontrado), devolvemos 404
         res.status(404).json({ error: error.message });
     }
 });
-// --- FIN DE LA NUEVA RUTA ---
-
 
 // POST /pets - Crear una nueva mascota
 router.post("/pets", async (req, res) => {
     try {
+        // Aseguramos que req.body existe antes de desestructurar
+        if (!req.body) {
+            return res.status(400).json({ error: "El cuerpo de la solicitud está vacío." });
+        }
         const { name, type, superpower, heroId } = req.body;
         const newPet = new Pet(null, name, type, superpower, parseInt(heroId));
         const addedPet = await petService.createPet(newPet);
@@ -44,6 +43,9 @@ router.post("/pets", async (req, res) => {
 // PUT /pets/:id - Actualizar una mascota
 router.put("/pets/:id", async (req, res) => {
     try {
+        if (!req.body) {
+            return res.status(400).json({ error: "El cuerpo de la solicitud está vacío." });
+        }
         const updatedPet = await petService.updatePet(req.params.id, req.body);
         res.json(updatedPet);
     } catch (error) {
