@@ -57,20 +57,33 @@ async function updatePet(id, petData) {
     const pets = await petRepository.getPets();
     const petIndex = pets.findIndex(p => p.id === parseInt(id));
     if (petIndex === -1) throw new Error('Mascota no encontrada');
-    
-    if (petData.heroId && petData.heroId !== pets[petIndex].heroId) {
-        const heroes = await heroRepository.getHeroes();
-        const newOwnerExists = heroes.find(h => h.id === petData.heroId);
-        if (!newOwnerExists) throw new Error('El nuevo superhéroe dueño no existe');
 
-        const newOwnerIsTaken = pets.find(p => p.heroId === petData.heroId);
+    // Creamos un objeto con solo los datos permitidos para actualizar
+    const allowedUpdates = {
+        name: petData.name,
+        type: petData.type,
+        superpower: petData.superpower,
+        heroId: petData.heroId
+    };
+
+    // Filtramos cualquier campo no permitido que venga en la petición
+    Object.keys(allowedUpdates).forEach(key => allowedUpdates[key] === undefined && delete allowedUpdates[key]);
+
+    if (allowedUpdates.heroId && allowedUpdates.heroId !== pets[petIndex].heroId) {
+        // Validación de dueño (sin cambios)
+        const heroes = await heroRepository.getHeroes();
+        const newOwnerExists = heroes.find(h => h.id === allowedUpdates.heroId);
+        if (!newOwnerExists) throw new Error('El nuevo superhéroe dueño no existe');
+        const newOwnerIsTaken = pets.find(p => p.heroId === allowedUpdates.heroId);
         if (newOwnerIsTaken) throw new Error(`El superhéroe ${newOwnerExists.name} ya tiene una mascota asignada.`);
     }
 
-    pets[petIndex] = { ...pets[petIndex], ...petData };
+    // Actualizamos la mascota solo con los campos permitidos
+    pets[petIndex] = { ...pets[petIndex], ...allowedUpdates };
     await petRepository.savePets(pets);
     return pets[petIndex];
 }
+
 
 async function deletePet(id) {
     let pets = await petRepository.getPets();
