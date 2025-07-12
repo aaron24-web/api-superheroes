@@ -3,6 +3,7 @@ import swaggerUi from 'swagger-ui-express';
 import swaggerSpec from './swagger.config.js'; // Importa la configuración
 import heroRoutes from './controllers/heroController.js'; // Importa las rutas
 import petRoutes from './controllers/petController.js';
+import gameRoutes from './controllers/gameController.js';
 
 const app = express();
 app.use(express.json());
@@ -12,7 +13,8 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Configura las rutas de la API
 app.use('/', heroRoutes);
-app.use('/', petRoutes); 
+app.use('/', petRoutes);
+app.use('/', gameRoutes); 
 
 const PORT = 3000;
 app.listen(PORT, () => {

@@ -3,15 +3,26 @@ import { check, validationResult } from 'express-validator';
 import heroServices from "../services/heroServices.js";
 import Hero from "../models/heroModel.js";
 
+// --- ESTA ES LA LÍNEA QUE FALTABA ---
 const router = express.Router();
 
-// Ruta para obtener todos los héroes
+// Llama a getAllHeroes que ahora incluye la mascota
 router.get("/heroes", async (req, res) => {
     try {
         const heroes = await heroServices.getAllHeroes();
         res.json(heroes);
     } catch (error) {
         res.status(500).json({ error: error.message });
+    }
+});
+
+// Llama a getHeroById que ahora incluye la mascota
+router.get("/heroes/:id", async (req, res) => {
+    try {
+        const hero = await heroServices.getHeroById(req.params.id);
+        res.json(hero);
+    } catch (error) {
+        res.status(404).json({ error: error.message });
     }
 });
 
@@ -26,12 +37,10 @@ router.post("/heroes",
         if(!errors.isEmpty()){
             return res.status(400).json({ errors: errors.array() });
         }
-
         try {
             const { name, alias, city, team } = req.body;
             const newHero = new Hero(null, name, alias, city, team);
             const addedHero = await heroServices.addHero(newHero);
-
             res.status(201).json(addedHero);
         } catch (error) {
             res.status(500).json({ error: error.message });
