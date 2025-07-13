@@ -5,8 +5,8 @@ const options = {
     openapi: '3.0.0',
     info: {
       title: 'API de Superhéroes',
-      version: '2.2.0',
-      description: 'API para gestionar Superhéroes y sus Mascotas, con un minijuego interactivo que incluye decaimiento de vida pasivo por tiempo.',
+      version: '3.0.0',
+      description: 'API final con sistema de juego de mascotas completo, incluyendo vida pasiva, enfermedades, personalidad, economía y accesorios.',
     },
     servers: [{ url: 'http://localhost:3000' }],
     tags: [
@@ -25,20 +25,13 @@ const options = {
         },
         Pet: {
           type: 'object',
-          description: "Modelo completo de una mascota, usado al crearla.",
+          description: "Modelo de una mascota, usado al crearla. Los atributos de juego se asignan automáticamente.",
           properties: {
             id: { type: 'integer', readOnly: true },
             name: { type: 'string' },
             type: { type: 'string' },
             superpower: { type: 'string' },
-            heroId: { type: 'integer' },
-            health: { type: 'integer', readOnly: true },
-            status: { type: 'string', readOnly: true },
-            coins: { type: 'integer', readOnly: true },
-            illness: { type: 'string', nullable: true, readOnly: true },
-            personality: { type: 'string', readOnly: true },
-            originalPersonality: { type: 'string', readOnly: true },
-            lastUpdated: { type: 'string', format: 'date-time', readOnly: true },
+            heroId: { type: 'integer', description: 'ID del superhéroe dueño.' },
           },
           required: ["name", "type", "heroId"]
         },
@@ -64,7 +57,16 @@ const options = {
             enfermedad: { type: 'string', nullable: true },
             personalidad: { type: 'string' },
             personalidad_original: { type: 'string' },
-            ultima_actualizacion: { type: 'string', format: 'date-time' }
+            ultima_actualizacion: { type: 'string', format: 'date-time' },
+            inventario: { type: 'array', items: { type: 'integer' }, description: 'IDs de los accesorios comprados.'},
+            accesorios_equipados: { 
+                type: 'object',
+                properties: {
+                    lentes: { type: 'object', nullable: true },
+                    ropa: { type: 'object', nullable: true },
+                    sombrero: { type: 'object', nullable: true },
+                }
+            }
           }
         }
       },
@@ -91,20 +93,7 @@ const options = {
       },
       '/pets/{id}': {
         get: { tags: ['Pets'], summary: 'Obtiene una mascota por su ID', parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'integer' } }], responses: { '200': { description: 'OK' } } },
-        put: {
-          tags: ['Pets'],
-          summary: 'Actualiza los datos básicos de una mascota (no los de juego)',
-          parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'integer' } }],
-          requestBody: {
-            required: true,
-            content: {
-              'application/json': {
-                schema: { $ref: '#/components/schemas/PetUpdate' }
-              }
-            }
-          },
-          responses: { '200': { description: 'Mascota actualizada.' } }
-        },
+        put: { tags: ['Pets'], summary: 'Actualiza los datos básicos de una mascota', parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'integer' } }], requestBody: {required: true, content: {'application/json': {schema: {$ref: '#/components/schemas/PetUpdate'}}}}, responses: { '200': { description: 'Actualizado' } } },
         delete: { tags: ['Pets'], summary: 'Elimina una mascota por ID', parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'integer' } }], responses: { '200': { description: 'Eliminado' } } }
       },
 
@@ -118,11 +107,9 @@ const options = {
       '/game/status': {
         get: {
           tags: ['Game'],
-          summary: 'Consulta el estado de la mascota activa (calcula pérdida de vida pasiva)',
+          summary: 'Consulta el estado de la mascota activa (calcula cambios por tiempo)',
           responses: { 
-            '200': { 
-              description: 'Estado actual de la mascota.',
-              content: { 'application/json': { schema: { $ref: '#/components/schemas/GameStatus' }}}
+            '200': { description: 'Estado actual de la mascota.', content: { 'application/json': { schema: { $ref: '#/components/schemas/GameStatus' }}}
             }
           }
         }
@@ -134,10 +121,26 @@ const options = {
         post: { tags: ['Game'], summary: 'Saca a pasear a la mascota activa (+2 de vida)', responses: { '200': { description: 'Mascota ha paseado.' } } }
       },
       '/game/cure': {
-        post: { tags: ['Game'], summary: 'Cura a la mascota activa si está enferma (revive si está muerta)', responses: { '200': { description: 'Mascota curada.' } } }
+        post: { tags: ['Game'], summary: 'Cura a la mascota activa si está enferma', responses: { '200': { description: 'Mascota curada.' } } }
       },
       '/game/revert-personality': {
-        post: { tags: ['Game'], summary: 'Restaura la personalidad original de la mascota activa', responses: { '200': { description: 'Personalidad restaurada.' } } }
+        post: { tags: ['Game'], summary: 'Restaura la personalidad original de la mascota', responses: { '200': { description: 'Personalidad restaurada.' } } }
+      },
+      '/game/buy/{accessoryId}': {
+        post: {
+          tags: ['Game'],
+          summary: 'Compra un accesorio con monedas',
+          parameters: [{ in: 'path', name: 'accessoryId', required: true, schema: { type: 'integer' } }],
+          responses: { '200': { description: 'Compra exitosa.' } }
+        }
+      },
+      '/game/equip/{accessoryId}': {
+        post: {
+          tags: ['Game'],
+          summary: 'Equipa un accesorio (gratis o comprado)',
+          parameters: [{ in: 'path', name: 'accessoryId', required: true, schema: { type: 'integer' } }],
+          responses: { '200': { description: 'Accesorio equipado.' } }
+        }
       }
     },
   },

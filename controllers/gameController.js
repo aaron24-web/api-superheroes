@@ -74,4 +74,22 @@ router.post("/game/revert-personality", async (req, res) => {
     }
 });
 
+router.post("/game/buy/:accessoryId", async (req, res) => {
+    try {
+        const result = await gameService.buyAccessory(req.params.accessoryId);
+        res.status(200).json(result);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+router.post("/game/equip/:accessoryId", async (req, res) => {
+    try {
+        const result = await gameService.equipAccessory(req.params.accessoryId);
+        res.status(200).json(result);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
 export default router;

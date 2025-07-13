@@ -1,6 +1,6 @@
 // models/petModel.js
 class Pet {
-    constructor(id, name, type, superpower, heroId, health = 10, status = 'excelente', coins = 0, illness = null, personality = 'Cariñoso', originalPersonality = 'Cariñoso', lastUpdated = new Date().toISOString()) {
+    constructor(id, name, type, superpower, heroId, health = 10, status = 'excelente', coins = 0, illness = null, personality = 'Cariñoso', originalPersonality = 'Cariñoso', lastUpdated = new Date().toISOString(), inventory = [], equippedAccessories = { lentes: null, ropa: null, sombrero: null }) {
         this.id = id;
         this.name = name;
         this.type = type;
@@ -13,6 +13,8 @@ class Pet {
         this.personality = personality;
         this.originalPersonality = originalPersonality;
         this.lastUpdated = lastUpdated;
+        this.inventory = inventory;
+        this.equippedAccessories = equippedAccessories;
     }
 }
 

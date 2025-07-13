@@ -9,6 +9,7 @@ yarn-error.log*
 # Archivos de base de datos local
 superheroes.json
 pets.json
+accesorios.json
 
 # Archivos de entorno (¡muy importante para el futuro!)
 .env
