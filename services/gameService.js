@@ -145,25 +145,45 @@ async function getStatus() {
 
 async function feedPet() {
     let pet = await getActivePet();
-    if (pet.health >= 10) throw new Error(`${pet.name} ya estaba lleno.`);
-    
+
+    // **LÓGICA RESTAURADA**
+    if (pet.health >= 10) {
+        pet.illness = 'dolor de estomago';
+        pet.health -= SICKNESSES['dolor de estomago'];
+        updatePetStatus(pet);
+        await savePetState(pet);
+        // Lanzamos un error para que la respuesta sea clara
+        throw new Error(`${pet.name} ya estaba lleno. Ahora tiene dolor de estómago y pierde 1 de vida.`);
+    }
+
     pet.health = Math.min(10, pet.health + 3);
     pet.coins += 5;
     pet.lastUpdated = new Date().toISOString();
     updatePetStatus(pet);
     await savePetState(pet);
+
     return { message: `Has alimentado a ${pet.name}.`, estado_actual: await getStatus() };
 }
 
 async function walkPet() {
     let pet = await getActivePet();
-    if (pet.health >= 10) throw new Error(`${pet.name} ya tenía energía al máximo.`);
-    
+
+    // **LÓGICA RESTAURADA**
+    if (pet.health >= 10) {
+        pet.illness = 'dolor de estomago';
+        pet.health -= SICKNESSES['dolor de estomago'];
+        updatePetStatus(pet);
+        await savePetState(pet);
+        // Lanzamos un error para que la respuesta sea clara
+        throw new Error(`${pet.name} ya tenía energía al máximo. Se fatigó y ahora tiene dolor de estómago.`);
+    }
+
     pet.health = Math.min(10, pet.health + 2);
     pet.coins += 3;
     pet.lastUpdated = new Date().toISOString();
     updatePetStatus(pet);
     await savePetState(pet);
+
     return { message: `${pet.name} ha salido a pasear.`, estado_actual: await getStatus() };
 }
 
