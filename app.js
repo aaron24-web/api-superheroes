@@ -1,9 +1,13 @@
 import express from 'express';
+import { connectDB } from './config/db.js'; // <-- ESTA ES LA LÍNEA QUE FALTABA
 import swaggerUi from 'swagger-ui-express';
-import swaggerSpec from './swagger.config.js'; // Importa la configuración
-import heroRoutes from './controllers/heroController.js'; // Importa las rutas
+import swaggerSpec from './swagger.config.js'; 
+import heroRoutes from './controllers/heroController.js';
 import petRoutes from './controllers/petController.js';
 import gameRoutes from './controllers/gameController.js';
+
+// Conectar a la base de datos al iniciar la aplicación
+connectDB(); 
 
 const app = express();
 app.use(express.json());
@@ -14,7 +18,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 // Configura las rutas de la API
 app.use('/', heroRoutes);
 app.use('/', petRoutes);
-app.use('/', gameRoutes); 
+app.use('/', gameRoutes);
 
 const PORT = 3000;
 app.listen(PORT, () => {

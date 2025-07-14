@@ -1,32 +1,43 @@
-import fs from 'fs-extra';
-import Hero from '../models/heroModel.js';
+import { connectDB } from '../config/db.js';
 
-// Corregido para apuntar al archivo correcto
-const filePath = './superheroes.json'; 
+// Función para asegurar que el ID sea un número
+const toInt = id => parseInt(id, 10);
+
+async function getCollection() {
+    const db = await connectDB();
+    return db.collection('heroes');
+}
 
 async function getHeroes() {
-    try {
-        const data = await fs.readJson(filePath);
-        return data.map(hero => new Hero(
-            hero.id, hero.name, hero.alias, hero.city, hero.team
-        ));
-    } catch (error) {
-        if (error.code === 'ENOENT') return [];
-        console.error("Error al leer el archivo de héroes:", error);
-        return [];
-    }
+    const collection = await getCollection();
+    return await collection.find({}).toArray();
 }
 
-async function saveHeroes(heroes) {
-    try {
-        await fs.writeJson(filePath, heroes, { spaces: 2 });
-    } catch (error) {
-        console.error("Error al guardar el archivo de héroes:", error);
-    }
+async function getHeroById(id) {
+    const collection = await getCollection();
+    return await collection.findOne({ id: toInt(id) });
 }
 
-// Exportación correcta como un objeto de funciones
-export default {
-    getHeroes,
-    saveHeroes
-};
+async function addHero(hero) {
+    const collection = await getCollection();
+    // Lógica para el autoincremento del ID
+    const lastHero = await collection.find().sort({ id: -1 }).limit(1).toArray();
+    hero.id = lastHero.length > 0 ? lastHero[0].id + 1 : 1;
+
+    await collection.insertOne(hero);
+    return hero;
+}
+
+async function updateHero(id, heroData) {
+    const collection = await getCollection();
+    const { _id, ...updateData } = heroData; // Excluimos _id de MongoDB
+    await collection.updateOne({ id: toInt(id) }, { $set: updateData });
+    return getHeroById(id);
+}
+
+async function deleteHero(id) {
+    const collection = await getCollection();
+    await collection.deleteOne({ id: toInt(id) });
+}
+
+export default { getHeroes, getHeroById, addHero, updateHero, deleteHero };

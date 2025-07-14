@@ -22,3 +22,6 @@ Thumbs.db
 # Archivos de editor de código
 .vscode/
 .idea/
+
+#cadena
+.env
