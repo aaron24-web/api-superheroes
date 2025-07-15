@@ -1,5 +1,6 @@
 import express from 'express';
-import { connectDB } from './config/db.js'; // <-- ESTA ES LA LÍNEA QUE FALTABA
+import cors from 'cors';
+import { connectDB } from './config/db.js'; 
 import swaggerUi from 'swagger-ui-express';
 import swaggerSpec from './swagger.config.js'; 
 import heroRoutes from './controllers/heroController.js';
@@ -10,6 +11,9 @@ import gameRoutes from './controllers/gameController.js';
 connectDB(); 
 
 const app = express();
+
+app.use(cors());
+
 app.use(express.json());
 
 // Configura la ruta para la UI de Swagger
