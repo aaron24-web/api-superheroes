@@ -1,25 +1,33 @@
 import express from 'express';
 import cors from 'cors';
-import { connectDB } from './config/db.js'; 
+import { connectDB } from './config/db.js';
 import swaggerUi from 'swagger-ui-express';
 import swaggerSpec from './swagger.config.js'; 
 import heroRoutes from './controllers/heroController.js';
 import petRoutes from './controllers/petController.js';
 import gameRoutes from './controllers/gameController.js';
 
-// Conectar a la base de datos al iniciar la aplicación
 connectDB(); 
 
 const app = express();
 
-app.use(cors());
+// --- CONFIGURACIÓN DE CORS MEJORADA ---
+const corsOptions = {
+    // Acepta peticiones de tu frontend en Render y de tu entorno local de desarrollo
+    origin: ['https://api-superheroes-o1b1.onrender.com', 'http://localhost:3000'],
+    optionsSuccessStatus: 200
+};
+app.use(cors(corsOptions));
+// --- FIN DE LA CONFIGURACIÓN ---
 
 app.use(express.json());
 
-// Configura la ruta para la UI de Swagger
+app.get('/', (req, res) => {
+  res.redirect('/api-docs');
+});
+
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-// Configura las rutas de la API
 app.use('/', heroRoutes);
 app.use('/', petRoutes);
 app.use('/', gameRoutes);

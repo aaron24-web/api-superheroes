@@ -8,11 +8,15 @@ const options = {
       version: '4.0.0',
       description: 'API final con sistema de usuarios basado en Superhéroes. Las operaciones de Mascotas y Juego requieren el header x-user-id.',
     },
-    servers: [{ url: 'http://localhost:3000' }],
-    tags: [
-      { name: 'Heroes', description: 'Operaciones para gestionar Superhéroes (Usuarios). Rutas públicas.' },
-      { name: 'Pets', description: 'Operaciones CRUD de Mascotas (Requiere x-user-id).' },
-      { name: 'Game', description: 'Endpoints para interactuar con la mascota activa (Requiere x-user-id).' },
+    servers: [
+      {
+        url: 'https://api-superheroes-o1b1.onrender.com', // ¡Tu URL pública de Render!
+        description: 'Servidor de Producción'
+      },
+      {
+        url: 'http://localhost:3000', // Mantenemos la local para pruebas
+        description: 'Servidor de Desarrollo Local'
+      }
     ],
     // --- NUEVO: Definimos el método de "autenticación" ---
     components: {
