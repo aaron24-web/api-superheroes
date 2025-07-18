@@ -50,14 +50,23 @@ async function findPetsByHeroId(heroId) {
  */
 async function addPet(pet) {
     const collection = await getCollection();
-    // Lógica para autoincrementar el ID
     const lastPet = await collection.find().sort({ id: -1 }).limit(1).toArray();
+    
+    // Asignamos el ID
     pet.id = lastPet.length > 0 ? lastPet[0].id + 1 : 1;
     
+    // Asignamos TODOS los valores iniciales del juego
+    pet.health = 10;
+    pet.status = 'excelente';
+    pet.coins = 0;
+    pet.illness = null;
+    pet.inventory = [];
+    pet.equippedAccessories = { lentes: null, ropa: null, sombrero: null };
+    pet.lastUpdated = new Date().toISOString(); // ¡La línea más importante!
+
     await collection.insertOne(pet);
     return pet;
 }
-
 /**
  * Actualiza una mascota existente en la base de datos.
  * @param {number} petId - El ID de la mascota a actualizar.
