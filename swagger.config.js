@@ -93,6 +93,12 @@ const options = {
           parameters: [{in: 'path', name: 'id', required: true, schema: {type: 'integer'}}],
           responses: {'200':{description: 'OK'}}
         },
+        delete: {
+          tags: ['Heroes'],
+          summary: 'Elimina un superhéroe por ID',
+          parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'integer' } }],
+          responses: { '200': { description: 'Superhéroe eliminado.' } },
+        },
       },
       
       // --- Rutas de Mascotas (Protegidas) ---
