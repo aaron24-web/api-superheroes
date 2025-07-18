@@ -40,4 +40,4 @@ async function deleteHero(id) {
     await collection.deleteOne({ id: toInt(id) });
 }
 
-export default { getHeroes, getHeroById, addHero, updateHero, deleteHero };
+export default { getHeroes, getHeroById, addHero, updateHero, deleteHero};

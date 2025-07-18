@@ -1,43 +1,49 @@
 import heroRepository from '../repositories/heroRepository.js';
+import petRepository from '../repositories/petRepository.js'; // Para borrar mascotas asociadas
+import Hero from '../models/heroModel.js';
 
 async function getAllHeroes() {
     return await heroRepository.getHeroes();
 }
 
 async function getHeroById(id) {
-    const heroes = await heroRepository.getHeroes();
-    return heroes.find(h => h.id === parseInt(id));
-}
-
-async function addHero(hero) {
-    const heroes = await heroRepository.getHeroes();
-    hero.id = heroes.length > 0 ? Math.max(...heroes.map(h => h.id)) + 1 : 1;
-    heroes.push(hero);
-    await heroRepository.saveHeroes(heroes);
+    const hero = await heroRepository.getHeroById(id);
+    if (!hero) {
+        throw new Error('Héroe no encontrado');
+    }
     return hero;
 }
 
+// --- FUNCIÓN CORREGIDA ---
+// Ahora llama directamente a la función 'addHero' del repositorio.
+async function addHero(heroData) {
+    // Usamos el modelo para asegurar la estructura correcta
+    const newHero = new Hero(null, heroData.name, heroData.alias, heroData.city, heroData.team);
+    return await heroRepository.addHero(newHero);
+}
+
+// --- FUNCIÓN CORREGIDA ---
+// Ahora llama directamente a la función 'updateHero' del repositorio.
 async function updateHero(id, heroData) {
-    const heroes = await heroRepository.getHeroes();
-    const index = heroes.findIndex(h => h.id === parseInt(id));
-    if (index === -1) throw new Error('Héroe no encontrado');
-    
-    heroes[index] = { ...heroes[index], ...heroData };
-    await heroRepository.saveHeroes(heroes);
-    return heroes[index];
+    await getHeroById(id); // Valida que el héroe exista primero
+    return await heroRepository.updateHero(id, heroData);
 }
 
+// --- FUNCIÓN CORREGIDA ---
+// Ahora llama directamente a la función 'deleteHero' del repositorio.
 async function deleteHero(id) {
-    let heroes = await heroRepository.getHeroes();
-    const initialLength = heroes.length;
-    heroes = heroes.filter(h => h.id !== parseInt(id));
-    if (heroes.length === initialLength) throw new Error('Héroe no encontrado');
+    await getHeroById(id); // Valida que el héroe exista
+
+    // Lógica adicional para borrar las mascotas del héroe y mantener la BD limpia
+    const pets = await petRepository.getPets();
+    const remainingPets = pets.filter(p => p.heroId !== parseInt(id));
+    await petRepository.savePets(remainingPets); // Esta función sí existe y es necesaria
     
-    await heroRepository.saveHeroes(heroes);
-    return { message: 'Héroe eliminado' };
+    // Ahora sí, borramos al héroe
+    await heroRepository.deleteHero(id);
+    return { message: 'Héroe y sus mascotas asociadas han sido eliminados.' };
 }
 
-// Las demás funciones de tu servicio...
 async function findHeroesByCity(city) {
     const heroes = await heroRepository.getHeroes();
     return heroes.filter(h => h.city.toLowerCase() === city.toLowerCase());
@@ -45,10 +51,10 @@ async function findHeroesByCity(city) {
 
 async function faceVillain(heroId, villainName) {
     const hero = await getHeroById(heroId);
-    if (!hero) throw new Error('Héroe no encontrado para enfrentar al villano');
     return `${hero.alias} está enfrentando a ${villainName}!`;
 }
 
+// Exportamos todas las funciones que usan los controladores
 export default {
     getAllHeroes,
     getHeroById,
