@@ -99,6 +99,9 @@ const options = {
           parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'integer' } }],
           responses: { '200': { description: 'Superhéroe eliminado.' } },
         },
+        '/heroes/city/{city}': {
+        get: { tags: ['Heroes'], summary: 'Encuentra superhéroes por ciudad', parameters: [{ in: 'path', name: 'city', required: true, schema: { type: 'string' } }], responses: { '200': { description: 'OK' } } }
+      },
       },
       
       // --- Rutas de Mascotas (Protegidas) ---
