@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Superhéroes y Mascotas</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <main id="app-container">
+
+        <section id="hero-selection-screen" class="screen active">
+            <h1>Elige tu Superhéroe</h1>
+            <div class="list-container">
+                <ul id="hero-list">
+                    </ul>
+            </div>
+            <div class="actions">
+                <button id="select-hero-btn">Seleccionar Héroe</button>
+                <button id="create-hero-btn">Crear Nuevo Héroe</button>
+                <button id="delete-hero-btn" class="danger">Eliminar Héroe</button>
+            </div>
+        </section>
+
+        <section id="pet-selection-screen" class="screen">
+            <h1 id="pet-screen-title">Mascotas de [Héroe]</h1>
+            <div class="list-container">
+                <ul id="pet-list">
+                    </ul>
+            </div>
+            <div class="actions">
+                <button id="select-pet-btn">¡Jugar con esta mascota!</button>
+                <button id="create-pet-btn">Crear Nueva Mascota</button>
+                <button id="delete-pet-btn" class="danger">Eliminar Mascota</button>
+            </div>
+             <button class="back-btn" data-target="hero-selection-screen">Volver a Héroes</button>
+        </section>
+
+        <section id="game-screen" class="screen">
+            <h1 id="game-screen-title">Jugando con [Mascota]</h1>
+            
+            <div id="status-display">
+                <p>Cargando estado...</p>
+            </div>
+
+            <div class="actions game-actions">
+                <button id="feed-btn">Alimentar</button>
+                <button id="walk-btn">Pasear</button>
+                <button id="cure-btn">Curar</button>
+            </div>
+             <div class="actions game-actions">
+                <button id="revert-personality-btn">Restaurar Personalidad</button>
+                <button id="buy-accessory-btn">Comprar Accesorio</button>
+                <button id="equip-accessory-btn">Equipar Accesorio</button>
+            </div>
+            
+            <button id="logout-btn" class="danger">Terminar Juego</button>
+            <button class="back-btn" data-target="pet-selection-screen">Volver a Mascotas</button>
+        </section>
+
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>

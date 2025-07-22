@@ -11,29 +11,24 @@ connectDB();
 
 const app = express();
 
-// --- CONFIGURACIÓN DE CORS MEJORADA ---
-const corsOptions = {
-    // Acepta peticiones de tu frontend en Render y de tu entorno local de desarrollo
-    origin: ['https://api-superheroes-o1b1.onrender.com', 'http://localhost:3000'],
-    optionsSuccessStatus: 200
-};
-app.use(cors(corsOptions));
-// --- FIN DE LA CONFIGURACIÓN ---
-
+app.use(cors());
 app.use(express.json());
 
-app.get('/', (req, res) => {
-  res.redirect('/api-docs');
-});
+// --- ESTE ES EL CAMBIO MÁS IMPORTANTE ---
+// Sirve los archivos estáticos (HTML, CSS, JS del frontend) de la carpeta 'public'.
+// Esto hace que tu index.html sea la página principal.
+app.use(express.static('public'));
 
+// La documentación de Swagger seguirá disponible en su propia ruta.
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
+// Las rutas de la API siguen funcionando igual.
 app.use('/', heroRoutes);
 app.use('/', petRoutes);
 app.use('/', gameRoutes);
 
-const PORT = 3000;
+// El puerto ahora lo tomará de una variable de entorno que Render nos da.
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Servidor corriendo en http://localhost:${PORT}`);
-  console.log(`Documentación de Swagger disponible en http://localhost:${PORT}/api-docs`);
+  console.log(`Servidor corriendo en el puerto ${PORT}`);
 });
