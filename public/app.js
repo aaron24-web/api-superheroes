@@ -1,303 +1,269 @@
-// --- CONFIGURACIÓN ---
-// La URL de tu API. Si pruebas en local, usa 'http://localhost:3000'.
-const API_BASE_URL = ''; // Sin URL base, hará las peticiones al mismo dominio
+document.addEventListener('DOMContentLoaded', () => {
+    // --- CONFIGURACIÓN ---
+    // AHORA APUNTA A TU URL DE RENDER
+    const API_BASE_URL = 'https://api-superheroes-o1b1.onrender.com';
 
-// --- ELEMENTOS DEL DOM ---
-// Pantallas
-const heroSelectionScreen = document.getElementById('hero-selection-screen');
-const petSelectionScreen = document.getElementById('pet-selection-screen');
-const gameScreen = document.getElementById('game-screen');
+    // --- ELEMENTOS DEL DOM ---
+    const screens = {
+        hero: document.getElementById('hero-selection-screen'),
+        pet: document.getElementById('pet-selection-screen'),
+        game: document.getElementById('game-screen')
+    };
 
-// Elementos de la pantalla de Héroes
-const heroList = document.getElementById('hero-list');
-const createHeroBtn = document.getElementById('create-hero-btn');
-const deleteHeroBtn = document.getElementById('delete-hero-btn');
-const selectHeroBtn = document.getElementById('select-hero-btn');
+    const heroList = document.getElementById('hero-list');
+    const petList = document.getElementById('pet-list');
+    const petScreenTitle = document.getElementById('pet-screen-title');
+    const gameScreenTitle = document.getElementById('game-screen-title');
+    const statusDisplay = document.getElementById('status-display');
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const alertContainer = document.getElementById('alert-container');
 
-// Elementos de la pantalla de Mascotas
-const petScreenTitle = document.getElementById('pet-screen-title');
-const petList = document.getElementById('pet-list');
-const createPetBtn = document.getElementById('create-pet-btn');
-const deletePetBtn = document.getElementById('delete-pet-btn');
-const selectPetBtn = document.getElementById('select-pet-btn');
-const backToHeroesBtn = document.querySelector('#pet-selection-screen .back-btn');
+    // --- ESTADO DE LA APLICACIÓN ---
+    let state = {
+        selectedHeroId: null,
+        selectedHeroAlias: '',
+        selectedPetId: null,
+        selectedPetName: ''
+    };
 
-// Elementos de la pantalla de Juego
-const gameScreenTitle = document.getElementById('game-screen-title');
-const statusDisplay = document.getElementById('status-display');
-const feedBtn = document.getElementById('feed-btn');
-const walkBtn = document.getElementById('walk-btn');
-const cureBtn = document.getElementById('cure-btn');
-const revertPersonalityBtn = document.getElementById('revert-personality-btn');
-const buyAccessoryBtn = document.getElementById('buy-accessory-btn');
-const equipAccessoryBtn = document.getElementById('equip-accessory-btn');
-const logoutBtn = document.getElementById('logout-btn');
-const backToPetsBtn = document.querySelector('#game-screen .back-btn');
+    // --- FUNCIONES AUXILIARES ---
+    const showLoading = (show) => loadingOverlay.classList.toggle('hidden', !show);
 
+    const showAlert = (message, type = 'success') => {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert ${type}`;
+        alertDiv.textContent = message;
+        alertContainer.appendChild(alertDiv);
+        setTimeout(() => alertDiv.remove(), 4000);
+    };
 
-// --- ESTADO DE LA APLICACIÓN ---
-let selectedHeroId = null;
-let selectedHeroAlias = '';
-let selectedPetId = null;
-let selectedPetName = '';
+    const apiRequest = async (endpoint, options = {}) => {
+        showLoading(true);
+        try {
+            const headers = {
+                'Content-Type': 'application/json',
+                ...options.headers,
+            };
+            if (state.selectedHeroId) {
+                headers['x-user-id'] = state.selectedHeroId;
+            }
+            
+            const response = await fetch(`${API_BASE_URL}${endpoint}`, { ...options, headers });
+            
+            const responseData = await response.json();
+            if (!response.ok) {
+                throw new Error(responseData.error || 'Ocurrió un error desconocido.');
+            }
+            return responseData;
+        } catch (error) {
+            showAlert(error.message, 'error');
+            throw error; // Propaga el error para que la lógica que llama pueda manejarlo
+        } finally {
+            showLoading(false);
+        }
+    };
 
+    const showScreen = (screenName) => {
+        Object.values(screens).forEach(screen => screen.classList.remove('active'));
+        screens[screenName].classList.add('active');
+    };
 
-// --- FUNCIONES DE NAVEGACIÓN ---
-function showScreen(screenToShow) {
-    document.querySelectorAll('.screen').forEach(screen => screen.classList.remove('active'));
-    screenToShow.classList.add('active');
-}
-
-
-// --- LÓGICA DE HÉROES ---
-async function loadHeroes() {
-    try {
-        const response = await fetch(`${API_BASE_URL}/heroes`);
-        if (!response.ok) throw new Error(`Error de red: ${response.statusText}`);
-        
-        const heroes = await response.json();
-        heroList.innerHTML = ''; 
-
-        heroes.forEach(hero => {
+    const renderList = (listElement, items, config) => {
+        listElement.innerHTML = '';
+        if (items.length === 0) {
             const li = document.createElement('li');
-            li.textContent = `${hero.alias} (${hero.name})`;
-            li.dataset.id = hero.id;
-            li.dataset.alias = hero.alias;
+            li.textContent = config.emptyText;
+            li.style.cursor = 'default';
+            li.style.textAlign = 'center';
+            listElement.appendChild(li);
+            return;
+        }
+
+        items.forEach(item => {
+            const li = document.createElement('li');
+            li.textContent = config.display(item);
+            li.dataset.id = item.id;
+            config.data.forEach(dataAttr => {
+                li.dataset[dataAttr] = item[dataAttr];
+            });
 
             li.addEventListener('click', () => {
-                heroList.querySelectorAll('li').forEach(item => item.classList.remove('selected'));
+                listElement.querySelectorAll('li').forEach(el => el.classList.remove('selected'));
                 li.classList.add('selected');
-                selectedHeroId = hero.id;
-                selectedHeroAlias = hero.alias;
+                config.onSelect(item);
             });
-
-            heroList.appendChild(li);
+            listElement.appendChild(li);
         });
-    } catch (error) {
-        console.error('Error al cargar los héroes:', error);
-        alert('No se pudieron cargar los héroes desde la API. Revisa la consola y asegúrate de que la API esté corriendo.');
-    }
-}
+    };
 
-createHeroBtn.addEventListener('click', async () => {
-    const name = prompt("Nombre real del héroe:");
-    const alias = prompt("Alias del héroe:");
-    if (!name || !alias) return alert("El nombre y el alias son requeridos.");
-    
-    try {
-        await fetch(`${API_BASE_URL}/heroes`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, alias, city: "N/A", team: "N/A" }),
-        });
-        alert('¡Héroe creado!');
-        loadHeroes();
-    } catch (error) {
-        alert('No se pudo crear el héroe.');
-    }
-});
-
-deleteHeroBtn.addEventListener('click', async () => {
-    if (!selectedHeroId) return alert("Por favor, selecciona un héroe para eliminar.");
-    if (confirm("¿Seguro que quieres eliminar a este héroe y sus mascotas?")) {
+    // --- LÓGICA DE HÉROES ---
+    async function loadHeroes() {
         try {
-            await fetch(`${API_BASE_URL}/heroes/${selectedHeroId}`, { method: 'DELETE' });
-            alert('Héroe eliminado.');
-            selectedHeroId = null;
-            loadHeroes();
+            const heroes = await apiRequest('/heroes');
+            renderList(heroList, heroes, {
+                display: hero => `${hero.alias} (${hero.name})`,
+                data: ['alias'],
+                emptyText: 'No hay héroes. ¡Crea el primero!',
+                onSelect: hero => {
+                    state.selectedHeroId = hero.id;
+                    state.selectedHeroAlias = hero.alias;
+                }
+            });
         } catch (error) {
-            alert('No se pudo eliminar el héroe.');
+            console.error('Fallo al cargar héroes');
         }
     }
-});
 
-
-// --- LÓGICA DE MASCOTAS ---
-async function loadPetsForHero(heroId) {
-    petScreenTitle.textContent = `Mascotas de ${selectedHeroAlias}`;
-    petList.innerHTML = '<li>Cargando...</li>';
-    selectedPetId = null;
-    try {
-        const response = await fetch(`${API_BASE_URL}/pets`, { headers: { 'x-user-id': heroId } });
-        if (!response.ok) throw new Error('Error en la API');
-        const pets = await response.json();
+    // --- LÓGICA DE MASCOTAS ---
+    async function loadPets() {
+        petScreenTitle.textContent = `Mascotas de ${state.selectedHeroAlias}`;
         petList.innerHTML = '';
-        if (pets.length === 0) {
-            petList.innerHTML = '<li>Este héroe no tiene mascotas. ¡Crea una!</li>';
-        } else {
-            pets.forEach(pet => {
-                const li = document.createElement('li');
-                li.textContent = `${pet.name} (${pet.type})`;
-                li.dataset.id = pet.id;
-                li.dataset.name = pet.name;
-                li.addEventListener('click', () => {
-                    petList.querySelectorAll('li').forEach(item => item.classList.remove('selected'));
-                    li.classList.add('selected');
-                    selectedPetId = pet.id;
-                    selectedPetName = pet.name;
-                });
-                petList.appendChild(li);
-            });
-        }
-    } catch (error) {
-        petList.innerHTML = '<li>Error al cargar las mascotas.</li>';
-    }
-}
-
-createPetBtn.addEventListener('click', async () => {
-    const name = prompt("Nombre de la mascota:");
-    const type = prompt("Tipo de animal:");
-    if (!name || !type) return alert("El nombre y el tipo son requeridos.");
-    try {
-        const response = await fetch(`${API_BASE_URL}/pets`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'x-user-id': selectedHeroId },
-            body: JSON.stringify({ name, type, superpower: prompt("Superpoder:") }),
-        });
-        if (!response.ok) {
-            const err = await response.json();
-            throw new Error(err.error);
-        }
-        alert('¡Mascota creada!');
-        loadPetsForHero(selectedHeroId);
-    } catch (error) {
-        alert(`Error: ${error.message}`);
-    }
-});
-
-deletePetBtn.addEventListener('click', async () => {
-    if (!selectedPetId) return alert("Por favor, selecciona una mascota para eliminar.");
-    if (confirm("¿Seguro que quieres eliminar esta mascota?")) {
+        state.selectedPetId = null;
         try {
-            await fetch(`${API_BASE_URL}/pets/${selectedPetId}`, {
-                method: 'DELETE',
-                headers: { 'x-user-id': selectedHeroId }
+            const pets = await apiRequest('/pets');
+            renderList(petList, pets, {
+                display: pet => `${pet.name} (${pet.type})`,
+                data: ['name'],
+                emptyText: 'Este héroe no tiene mascotas. ¡Crea una!',
+                onSelect: pet => {
+                    state.selectedPetId = pet.id;
+                    state.selectedPetName = pet.name;
+                }
             });
-            alert('Mascota eliminada.');
-            loadPetsForHero(selectedHeroId);
         } catch (error) {
-            alert('No se pudo eliminar la mascota.');
+            console.error('Fallo al cargar mascotas');
         }
     }
-});
 
-
-// --- LÓGICA DE JUEGO ---
-async function selectPetForGame(petId) {
-    try {
-        const response = await fetch(`${API_BASE_URL}/game/select-pet/${petId}`, {
-            method: 'POST',
-            headers: { 'x-user-id': selectedHeroId }
-        });
-        if (!response.ok) {
-            const err = await response.json();
-            throw new Error(err.error);
+    // --- LÓGICA DE JUEGO ---
+    async function updateGameStatus() {
+        try {
+            const status = await apiRequest('/game/status');
+            statusDisplay.innerHTML = `
+                <p><strong>Vida:</strong> ${status.vida} / 10 | <strong>Estado:</strong> ${status.estado}</p>
+                <p><strong>Monedas:</strong> ${status.monedas} 🪙</p>
+                <p><strong>Enfermedad:</strong> ${status.enfermedad || 'Ninguna'}</p>
+                <p><strong>Personalidad:</strong> ${status.personalidad} (Original: ${status.personalidad_original})</p>
+                <p><strong>Equipado:</strong> 
+                    Lentes: ${status.accesorios_equipados.lentes?.nombre || 'Ninguno'}, 
+                    Ropa: ${status.accesorios_equipados.ropa?.nombre || 'Ninguno'}, 
+                    Sombrero: ${status.accesorios_equipados.sombrero?.nombre || 'Ninguno'}
+                </p>`;
+        } catch (error) {
+            statusDisplay.innerHTML = `<p style="color: red;">No se pudo cargar el estado. Puede que necesites seleccionar una mascota de nuevo.</p>`;
         }
-        gameScreenTitle.textContent = `Jugando con ${selectedPetName}`;
-        await updateGameStatus();
-        showScreen(gameScreen);
-    } catch (error) {
-        alert(`Error: ${error.message}`);
     }
-}
 
-async function updateGameStatus() {
-    try {
-        const response = await fetch(`${API_BASE_URL}/game/status`, { headers: { 'x-user-id': selectedHeroId } });
-        if (!response.ok) {
-            const err = await response.json();
-            throw new Error(err.error);
+    async function performGameAction(action) {
+        try {
+            const result = await apiRequest(`/game/${action}`, { method: 'POST' });
+            if (result.message) showAlert(result.message);
+            updateGameStatus();
+        } catch (error) {
+            console.error(`Fallo en la acción: ${action}`);
+            updateGameStatus(); 
         }
-        const status = await response.json();
-        statusDisplay.innerHTML = `
-            <p><strong>Vida:</strong> ${status.vida} / 10 | <strong>Estado:</strong> ${status.estado}</p>
-            <p><strong>Monedas:</strong> ${status.monedas} 🪙</p>
-            <p><strong>Enfermedad:</strong> ${status.enfermedad}</p>
-            <p><strong>Personalidad:</strong> ${status.personalidad} (Original: ${status.personalidad_original})</p>
-            <p><strong>Equipado:</strong> 
-                Lentes: ${status.accesorios_equipados.lentes?.nombre || 'Ninguno'}, 
-                Ropa: ${status.accesorios_equipados.ropa?.nombre || 'Ninguno'}, 
-                Sombrero: ${status.accesorios_equipados.sombrero?.nombre || 'Ninguno'}
-            </p>
-        `;
-    } catch (error) {
-        statusDisplay.innerHTML = `<p style="color: red;">${error.message}</p>`;
     }
-}
-
-async function performGameAction(action) {
-    try {
-        const response = await fetch(`${API_BASE_URL}/game/${action}`, {
-            method: 'POST',
-            headers: { 'x-user-id': selectedHeroId }
-        });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error);
+    
+    // --- EVENT LISTENERS ---
+    document.body.addEventListener('click', async (e) => {
+        const target = e.target;
         
-        if (result.message) alert(result.message);
-        await updateGameStatus();
-    } catch (error) {
-        alert(`Error: ${error.message}`);
-        await updateGameStatus();
-    }
-}
+        // --- Navegación ---
+        if (target.matches('.back-btn')) {
+            showScreen(target.dataset.target);
+        }
 
+        if (target.id === 'select-hero-btn') {
+            if (!state.selectedHeroId) return showAlert("Por favor, selecciona un héroe.", 'error');
+            showScreen('pet');
+            loadPets();
+        }
 
-// --- EVENT LISTENERS (BOTONES) ---
-selectHeroBtn.addEventListener('click', () => {
-    if (!selectedHeroId) return alert("Por favor, selecciona un héroe.");
-    loadPetsForHero(selectedHeroId);
-    showScreen(petSelectionScreen);
-});
+        if (target.id === 'select-pet-btn') {
+            if (!state.selectedPetId) return showAlert("Por favor, selecciona una mascota.", 'error');
+            try {
+                await apiRequest(`/game/select-pet/${state.selectedPetId}`, { method: 'POST' });
+                gameScreenTitle.textContent = `Jugando con ${state.selectedPetName}`;
+                showScreen('game');
+                updateGameStatus();
+            } catch (error) {
+                console.error("Fallo al seleccionar mascota para juego");
+            }
+        }
+        
+        if (target.id === 'logout-btn') {
+            try {
+                await apiRequest('/game/logout', { method: 'POST' });
+                showAlert("Has terminado de jugar.");
+                showScreen('pet');
+            } catch (error) {
+                 console.error("Fallo al cerrar sesión del juego");
+            }
+        }
 
-backToHeroesBtn.addEventListener('click', () => showScreen(heroSelectionScreen));
+        // --- Acciones de Creación/Eliminación ---
+        if (target.id === 'create-hero-btn') {
+            const name = prompt("Nombre real del héroe:");
+            const alias = prompt("Alias del héroe:");
+            if (!name || !alias) return;
+            try {
+                await apiRequest('/heroes', { method: 'POST', body: JSON.stringify({ name, alias, city: "N/A", team: "N/A" }) });
+                showAlert('¡Héroe creado!');
+                loadHeroes();
+            } catch(e) {}
+        }
+        
+        if (target.id === 'delete-hero-btn') {
+            if (!state.selectedHeroId) return showAlert("Selecciona un héroe para eliminar.", 'error');
+            if (!confirm("¿Seguro? Se eliminarán el héroe y TODAS sus mascotas.")) return;
+            try {
+                await apiRequest(`/heroes/${state.selectedHeroId}`, { method: 'DELETE' });
+                showAlert('Héroe eliminado.');
+                state.selectedHeroId = null;
+                loadHeroes();
+            } catch(e) {}
+        }
+        
+        if (target.id === 'create-pet-btn') {
+            const name = prompt("Nombre de la mascota:");
+            const type = prompt("Tipo de animal:");
+            if (!name || !type) return;
+            try {
+                await apiRequest('/pets', { method: 'POST', body: JSON.stringify({ name, type, superpower: prompt("Superpoder:") || "Ninguno" }) });
+                showAlert('¡Mascota creada!');
+                loadPets();
+            } catch(e) {}
+        }
+        
+        if (target.id === 'delete-pet-btn') {
+            if (!state.selectedPetId) return showAlert("Selecciona una mascota para eliminar.", 'error');
+            if (!confirm("¿Seguro que quieres eliminar esta mascota?")) return;
+            try {
+                await apiRequest(`/pets/${state.selectedPetId}`, { method: 'DELETE' });
+                showAlert('Mascota eliminada.');
+                loadPets();
+            } catch(e) {}
+        }
 
-selectPetBtn.addEventListener('click', () => {
-    if (!selectedPetId) return alert("Por favor, selecciona una mascota para jugar.");
-    selectPetForGame(selectedPetId);
-});
+        // --- Acciones de Juego ---
+        if (target.id === 'feed-btn') performGameAction('feed');
+        if (target.id === 'walk-btn') performGameAction('walk');
+        if (target.id === 'cure-btn') performGameAction('cure');
+        if (target.id === 'revert-personality-btn') performGameAction('revert-personality');
+        
+        if (target.id === 'buy-accessory-btn') {
+            const id = prompt("ID del accesorio a comprar:");
+            if (id) performGameAction(`buy/${id}`);
+        }
+        
+        if (target.id === 'equip-accessory-btn') {
+            const id = prompt("ID del accesorio a equipar:");
+            if (id) performGameAction(`equip/${id}`);
+        }
+    });
 
-feedBtn.addEventListener('click', () => performGameAction('feed'));
-walkBtn.addEventListener('click', () => performGameAction('walk'));
-cureBtn.addEventListener('click', () => performGameAction('cure'));
-revertPersonalityBtn.addEventListener('click', () => performGameAction('revert-personality'));
-
-buyAccessoryBtn.addEventListener('click', () => {
-    const accessoryId = prompt("Ingresa el ID del accesorio que quieres comprar (ej. 1, 2, 3):");
-    if (accessoryId) {
-        performGameAction(`buy/${accessoryId}`);
-    }
-});
-
-equipAccessoryBtn.addEventListener('click', () => {
-    const accessoryId = prompt("Ingresa el ID del accesorio que quieres equipar:");
-    if (accessoryId) {
-        performGameAction(`equip/${accessoryId}`);
-    }
-});
-
-backToPetsBtn.addEventListener('click', () => {
-    loadPetsForHero(selectedHeroId);
-    showScreen(petSelectionScreen);
-});
-
-logoutBtn.addEventListener('click', async () => {
-    try {
-        await fetch(`${API_BASE_URL}/game/logout`, {
-            method: 'POST',
-            headers: { 'x-user-id': selectedHeroId }
-        });
-        alert("Has terminado de jugar.");
-        loadPetsForHero(selectedHeroId);
-        showScreen(petSelectionScreen);
-    } catch (error) {
-        alert('No se pudo cerrar la sesión del juego.');
-    }
-});
-
-
-// --- INICIALIZACIÓN ---
-document.addEventListener('DOMContentLoaded', () => {
+    // --- INICIALIZACIÓN ---
     loadHeroes();
-    showScreen(heroSelectionScreen);
+    showScreen('hero');
 });
