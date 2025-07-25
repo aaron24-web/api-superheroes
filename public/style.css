@@ -16,7 +16,10 @@
 
 body {
     font-family: var(--font-family);
-    background-color: var(--light-bg);
+    background-image: url('https://images.unsplash.com/photo-1560703650-ef3e0f254ae0?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1740&q=80');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -27,7 +30,8 @@ body {
 }
 
 #app-container {
-    background: var(--light-text);
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
     padding: 2rem;
     border-radius: 12px;
     box-shadow: var(--shadow);
@@ -62,7 +66,7 @@ h1 {
 .list-container {
     border: 1px solid var(--border-color);
     border-radius: 8px;
-    height: 250px;
+    max-height: 300px;
     overflow-y: auto;
     margin-bottom: 1.5rem;
     background-color: #fff;
@@ -81,7 +85,18 @@ li {
     transition: background-color 0.2s, color 0.2s;
     font-weight: 600;
     color: #495057;
+    display: flex;
+    align-items: center;
+    gap: 15px;
 }
+
+li img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
 
 li:last-child {
     border-bottom: none;

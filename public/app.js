@@ -1,7 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- CONFIGURACIÓN ---
-    // AHORA APUNTA A TU URL DE RENDER
-    const API_BASE_URL = 'https://api-superheroes-o1b1.onrender.com';
+    const API_BASE_URL = '';
 
     // --- ELEMENTOS DEL DOM ---
     const screens = {
@@ -57,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return responseData;
         } catch (error) {
             showAlert(error.message, 'error');
-            throw error; // Propaga el error para que la lógica que llama pueda manejarlo
+            throw error;
         } finally {
             showLoading(false);
         }
@@ -81,7 +80,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         items.forEach(item => {
             const li = document.createElement('li');
-            li.textContent = config.display(item);
+            const img = document.createElement('img');
+            img.src = `https://i.pravatar.cc/40?u=${item.id}`; // Avatares aleatorios
+            li.appendChild(img);
+            
+            const text = document.createElement('span');
+            text.textContent = config.display(item);
+            li.appendChild(text)
+
             li.dataset.id = item.id;
             config.data.forEach(dataAttr => {
                 li.dataset[dataAttr] = item[dataAttr];
@@ -102,7 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const heroes = await apiRequest('/heroes');
             renderList(heroList, heroes, {
                 display: hero => `${hero.alias} (${hero.name})`,
-                data: ['alias'],
+                data: ['alias', 'name', 'city', 'team'],
                 emptyText: 'No hay héroes. ¡Crea el primero!',
                 onSelect: hero => {
                     state.selectedHeroId = hero.id;
@@ -123,7 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const pets = await apiRequest('/pets');
             renderList(petList, pets, {
                 display: pet => `${pet.name} (${pet.type})`,
-                data: ['name'],
+                data: ['name', 'type', 'superpower'],
                 emptyText: 'Este héroe no tiene mascotas. ¡Crea una!',
                 onSelect: pet => {
                     state.selectedPetId = pet.id;
@@ -202,7 +208,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // --- Acciones de Creación/Eliminación ---
+        // --- Acciones de Creación/Eliminación/Modificación ---
         if (target.id === 'create-hero-btn') {
             const name = prompt("Nombre real del héroe:");
             const alias = prompt("Alias del héroe:");
@@ -214,6 +220,23 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch(e) {}
         }
         
+        if (target.id === 'modify-hero-btn') {
+            if (!state.selectedHeroId) return showAlert("Selecciona un héroe para modificar.", 'error');
+            const selectedHeroLi = heroList.querySelector(`[data-id='${state.selectedHeroId}']`);
+            
+            const name = prompt("Nuevo nombre real del héroe:", selectedHeroLi.dataset.name);
+            const alias = prompt("Nuevo alias del héroe:", selectedHeroLi.dataset.alias);
+            const city = prompt("Nueva ciudad del héroe:", selectedHeroLi.dataset.city);
+            const team = prompt("Nuevo equipo del héroe:", selectedHeroLi.dataset.team);
+
+            if (!name || !alias) return;
+            try {
+                await apiRequest(`/heroes/${state.selectedHeroId}`, { method: 'PUT', body: JSON.stringify({ name, alias, city, team }) });
+                showAlert('¡Héroe modificado!');
+                loadHeroes();
+            } catch(e) {}
+        }
+
         if (target.id === 'delete-hero-btn') {
             if (!state.selectedHeroId) return showAlert("Selecciona un héroe para eliminar.", 'error');
             if (!confirm("¿Seguro? Se eliminarán el héroe y TODAS sus mascotas.")) return;
@@ -232,6 +255,22 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 await apiRequest('/pets', { method: 'POST', body: JSON.stringify({ name, type, superpower: prompt("Superpoder:") || "Ninguno" }) });
                 showAlert('¡Mascota creada!');
+                loadPets();
+            } catch(e) {}
+        }
+
+        if (target.id === 'modify-pet-btn') {
+            if (!state.selectedPetId) return showAlert("Selecciona una mascota para modificar.", 'error');
+            const selectedPetLi = petList.querySelector(`[data-id='${state.selectedPetId}']`);
+            
+            const name = prompt("Nuevo nombre de la mascota:", selectedPetLi.dataset.name);
+            const type = prompt("Nuevo tipo de animal:", selectedPetLi.dataset.type);
+            const superpower = prompt("Nuevo superpoder:", selectedPetLi.dataset.superpower);
+
+            if (!name || !type) return;
+            try {
+                await apiRequest(`/pets/${state.selectedPetId}`, { method: 'PUT', body: JSON.stringify({ name, type, superpower }) });
+                showAlert('¡Mascota modificada!');
                 loadPets();
             } catch(e) {}
         }
