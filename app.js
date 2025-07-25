@@ -2,22 +2,32 @@ import express from 'express';
 import cors from 'cors';
 import { connectDB } from './config/db.js';
 import swaggerUi from 'swagger-ui-express';
-import swaggerSpec from './swagger.config.js'; 
+import swaggerSpec from './swagger.config.js';
 import heroRoutes from './controllers/heroController.js';
 import petRoutes from './controllers/petController.js';
 import gameRoutes from './controllers/gameController.js';
 
-connectDB(); 
+connectDB();
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-// --- ESTE ES EL CAMBIO MÁS IMPORTANTE ---
-// Sirve los archivos estáticos (HTML, CSS, JS del frontend) de la carpeta 'public'.
-// Esto hace que tu index.html sea la página principal.
+// --- CAMBIOS PARA LA PÁGINA DE INICIO ---
+
+// 1. Establece welcome.html como la página principal al visitar la raíz del sitio.
+app.get('/', (req, res) => {
+    // Envía el archivo welcome.html que está en la carpeta 'public'.
+    res.sendFile('public/welcome.html', { root: '.' });
+});
+
+// 2. Sigue sirviendo todos los archivos de la carpeta 'public' de forma estática.
+// Esto es crucial para que welcome.html pueda cargar su CSS y para que el botón "Entrar" funcione.
 app.use(express.static('public'));
+
+
+// --- RUTAS DE LA API Y SWAGGER (Sin cambios) ---
 
 // La documentación de Swagger seguirá disponible en su propia ruta.
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
@@ -26,6 +36,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/', heroRoutes);
 app.use('/', petRoutes);
 app.use('/', gameRoutes);
+
 
 // El puerto ahora lo tomará de una variable de entorno que Render nos da.
 const PORT = process.env.PORT || 3000;

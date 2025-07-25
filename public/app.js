@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- CONFIGURACIÓN ---
-    const API_BASE_URL = '';
+    const API_BASE_URL = 'https://api-superheroes-o1b1.onrender.com';
 
     // --- ELEMENTOS DEL DOM ---
     const screens = {
@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
         pet: document.getElementById('pet-selection-screen'),
         game: document.getElementById('game-screen')
     };
-
+    const body = document.body;
     const heroList = document.getElementById('hero-list');
     const petList = document.getElementById('pet-list');
     const petScreenTitle = document.getElementById('pet-screen-title');
@@ -65,8 +65,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const showScreen = (screenName) => {
         Object.values(screens).forEach(screen => screen.classList.remove('active'));
         screens[screenName].classList.add('active');
+        
+        // --- NUEVO: Añade o quita la clase del body para el fondo ---
+        if (screenName === 'game') {
+            body.classList.add('game-active');
+        } else {
+            body.classList.remove('game-active');
+        }
     };
 
+    // --- MODIFICADO: Acepta un 'avatarType' para generar la imagen correcta ---
     const renderList = (listElement, items, config) => {
         listElement.innerHTML = '';
         if (items.length === 0) {
@@ -81,7 +89,17 @@ document.addEventListener('DOMContentLoaded', () => {
         items.forEach(item => {
             const li = document.createElement('li');
             const img = document.createElement('img');
-            img.src = `https://i.pravatar.cc/40?u=${item.id}`; // Avatares aleatorios
+            
+            // --- Lógica de avatares ---
+            if (config.avatarType === 'hero') {
+                // Para héroes, usamos avatares de personas
+                img.src = `https://i.pravatar.cc/40?u=${item.id}`;
+            } else {
+                // Para mascotas, usamos imágenes de animales al azar
+                // El "?random=${item.id}" asegura que la imagen sea diferente para cada mascota pero consistente
+                img.src = `https://loremflickr.com/40/40/animal,pet?random=${item.id}`;
+            }
+            
             li.appendChild(img);
             
             const text = document.createElement('span');
@@ -106,6 +124,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadHeroes() {
         try {
             const heroes = await apiRequest('/heroes');
+            // --- MODIFICADO: Se añade avatarType: 'hero' ---
             renderList(heroList, heroes, {
                 display: hero => `${hero.alias} (${hero.name})`,
                 data: ['alias', 'name', 'city', 'team'],
@@ -113,7 +132,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 onSelect: hero => {
                     state.selectedHeroId = hero.id;
                     state.selectedHeroAlias = hero.alias;
-                }
+                },
+                avatarType: 'hero'
             });
         } catch (error) {
             console.error('Fallo al cargar héroes');
@@ -127,6 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
         state.selectedPetId = null;
         try {
             const pets = await apiRequest('/pets');
+            // --- MODIFICADO: Se añade avatarType: 'pet' ---
             renderList(petList, pets, {
                 display: pet => `${pet.name} (${pet.type})`,
                 data: ['name', 'type', 'superpower'],
@@ -134,7 +155,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 onSelect: pet => {
                     state.selectedPetId = pet.id;
                     state.selectedPetName = pet.name;
-                }
+                },
+                avatarType: 'pet'
             });
         } catch (error) {
             console.error('Fallo al cargar mascotas');

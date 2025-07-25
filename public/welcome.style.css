@@ -1,0 +1,70 @@
+body, html {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    font-family: 'Poppins', sans-serif;
+    overflow: hidden; /* Evita barras de scroll innecesarias */
+}
+
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    /* AQUÍ PEGAS EL LINK DE TU GIF O IMAGEN.
+      Por ejemplo: url('https://i.pinimg.com/originals/75/a1/6f/75a16f3c474342a4972551602453625f.gif');
+      He puesto la URL de la imagen que subiste.
+    */
+    background-image: url('https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExODY1bDN3dTAyeDY5N3hxdTA5c3VjYXh6aXhxcWxibW1yNnZmMzJhdiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l1J3t49Ncr918aboQ/giphy.gif'); /* Reemplaza con la URL de tu imagen o GIF */
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    filter: brightness(0.5); /* Oscurece un poco el fondo para que el texto resalte */
+    z-index: -1;
+}
+
+.welcome-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    text-align: center;
+    color: white;
+    padding: 2rem;
+    box-sizing: border-box;
+}
+
+h1 {
+    font-size: 3.5rem;
+    margin-bottom: 1rem;
+    text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.8);
+}
+
+p {
+    font-size: 1.5rem;
+    margin-bottom: 2rem;
+    text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.7);
+}
+
+.enter-button {
+    padding: 1rem 2.5rem;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: white;
+    background-color: #007bff;
+    border: none;
+    border-radius: 8px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.2s;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.enter-button:hover {
+    background-color: #0056b3;
+    transform: scale(1.05);
+}
