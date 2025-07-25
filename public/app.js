@@ -13,7 +13,8 @@ document.addEventListener('DOMContentLoaded', () => {
         '/images/hero_avatars/hero5.jpg',
         '/images/hero_avatars/hero6.jpg',
         '/images/hero_avatars/hero7.jpg',
-        '/images/hero_avatars/hero8.jpg'
+        '/images/hero_avatars/hero8.jpg',
+        '/images/hero_avatars/hero9.jpg'
     ];
 
     const PET_AVATARS = [
@@ -41,27 +42,39 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusDisplay = document.getElementById('status-display');
     const loadingOverlay = document.getElementById('loading-overlay');
     const alertContainer = document.getElementById('alert-container');
-    
-    // --- Lógica de Música ---
+
+    // --- LÓGICA DE MÚSICA QUE RECUERDA EL ESTADO ---
     const backgroundMusic = document.getElementById('background-music');
     const muteBtn = document.getElementById('mute-btn');
     let musicStarted = false;
 
+    // Al cargar la página, revisa el estado guardado
+    if (localStorage.getItem('musicMuted') === 'true') {
+        backgroundMusic.muted = true;
+        muteBtn.textContent = '🔇';
+    } else {
+        backgroundMusic.muted = false;
+        muteBtn.textContent = '🔊';
+    }
+
     function playMusic() {
         if (backgroundMusic && !musicStarted) {
-            backgroundMusic.volume = 0.2; // Un volumen bajo para no ser molesto
-            backgroundMusic.play().catch(e => console.error("Error al reproducir música:", e));
+            backgroundMusic.volume = 0.2;
+            backgroundMusic.play().catch(e => console.error("La música necesita interacción del usuario para empezar."));
             musicStarted = true;
         }
     }
-    
+
     // Inicia la música con la primera interacción del usuario en la página.
     document.body.addEventListener('click', playMusic, { once: true });
 
-    // Funcionalidad del botón de Mute
-    muteBtn.addEventListener('click', () => {
+    // Funcionalidad del botón de Mute que guarda la preferencia
+    muteBtn.addEventListener('click', (event) => {
+        event.stopPropagation();
+        if (!musicStarted) playMusic();
         backgroundMusic.muted = !backgroundMusic.muted;
         muteBtn.textContent = backgroundMusic.muted ? '🔇' : '🔊';
+        localStorage.setItem('musicMuted', backgroundMusic.muted);
     });
 
     // --- ESTADO DE LA APLICACIÓN ---

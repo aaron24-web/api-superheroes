@@ -16,7 +16,7 @@
 
 body {
     font-family: var(--font-family);
-    background-image: url('https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExd21udWk3cnpwaHNqb2l0aDltYmgwaXR5eDRrOHExdDIyNDR1bGxlNSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l1J3vXGjuykBjNriM/giphy.gif');
+    background-image: url('/images/fondo2.gif');
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
