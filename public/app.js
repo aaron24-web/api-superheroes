@@ -1,6 +1,31 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- CONFIGURACIÓN ---
-    const API_BASE_URL = 'https://api-superheroes-o1b1.onrender.com';
+    const API_BASE_URL = '';
+
+    // --- LISTAS DE AVATARES LOCALES ---
+    // ¡Asegúrate de que las rutas y nombres de archivo coincidan con los que guardaste!
+
+    const HERO_AVATARS = [
+        '/images/hero_avatars/hero1.jpg',
+        '/images/hero_avatars/hero2.jpg',
+        '/images/hero_avatars/hero3.jpg',
+        '/images/hero_avatars/hero4.jpg',
+        '/images/hero_avatars/hero5.jpg',
+        '/images/hero_avatars/hero6.jpg',
+        '/images/hero_avatars/hero7.jpg',
+        '/images/hero_avatars/hero8.jpg'
+    ];
+
+    const PET_AVATARS = [
+        '/images/avatars/1.jpg',
+        '/images/avatars/2.jpg',
+        '/images/avatars/3.jpg',
+        '/images/avatars/4.jpg',
+        '/images/avatars/5.jpg',
+        '/images/avatars/6.jpg',
+        '/images/avatars/7.jpg'
+    ];
+
 
     // --- ELEMENTOS DEL DOM ---
     const screens = {
@@ -16,6 +41,28 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusDisplay = document.getElementById('status-display');
     const loadingOverlay = document.getElementById('loading-overlay');
     const alertContainer = document.getElementById('alert-container');
+    
+    // --- Lógica de Música ---
+    const backgroundMusic = document.getElementById('background-music');
+    const muteBtn = document.getElementById('mute-btn');
+    let musicStarted = false;
+
+    function playMusic() {
+        if (backgroundMusic && !musicStarted) {
+            backgroundMusic.volume = 0.2; // Un volumen bajo para no ser molesto
+            backgroundMusic.play().catch(e => console.error("Error al reproducir música:", e));
+            musicStarted = true;
+        }
+    }
+    
+    // Inicia la música con la primera interacción del usuario en la página.
+    document.body.addEventListener('click', playMusic, { once: true });
+
+    // Funcionalidad del botón de Mute
+    muteBtn.addEventListener('click', () => {
+        backgroundMusic.muted = !backgroundMusic.muted;
+        muteBtn.textContent = backgroundMusic.muted ? '🔇' : '🔊';
+    });
 
     // --- ESTADO DE LA APLICACIÓN ---
     let state = {
@@ -66,7 +113,6 @@ document.addEventListener('DOMContentLoaded', () => {
         Object.values(screens).forEach(screen => screen.classList.remove('active'));
         screens[screenName].classList.add('active');
         
-        // --- NUEVO: Añade o quita la clase del body para el fondo ---
         if (screenName === 'game') {
             body.classList.add('game-active');
         } else {
@@ -74,7 +120,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // --- MODIFICADO: Acepta un 'avatarType' para generar la imagen correcta ---
     const renderList = (listElement, items, config) => {
         listElement.innerHTML = '';
         if (items.length === 0) {
@@ -90,14 +135,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const li = document.createElement('li');
             const img = document.createElement('img');
             
-            // --- Lógica de avatares ---
             if (config.avatarType === 'hero') {
-                // Para héroes, usamos avatares de personas
-                img.src = `https://i.pravatar.cc/40?u=${item.id}`;
+                const avatarIndex = item.id % HERO_AVATARS.length;
+                img.src = HERO_AVATARS[avatarIndex];
             } else {
-                // Para mascotas, usamos imágenes de animales al azar
-                // El "?random=${item.id}" asegura que la imagen sea diferente para cada mascota pero consistente
-                img.src = `https://loremflickr.com/40/40/animal,pet?random=${item.id}`;
+                const avatarIndex = item.id % PET_AVATARS.length;
+                img.src = PET_AVATARS[avatarIndex];
             }
             
             li.appendChild(img);
@@ -124,7 +167,6 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadHeroes() {
         try {
             const heroes = await apiRequest('/heroes');
-            // --- MODIFICADO: Se añade avatarType: 'hero' ---
             renderList(heroList, heroes, {
                 display: hero => `${hero.alias} (${hero.name})`,
                 data: ['alias', 'name', 'city', 'team'],
@@ -147,7 +189,6 @@ document.addEventListener('DOMContentLoaded', () => {
         state.selectedPetId = null;
         try {
             const pets = await apiRequest('/pets');
-            // --- MODIFICADO: Se añade avatarType: 'pet' ---
             renderList(petList, pets, {
                 display: pet => `${pet.name} (${pet.type})`,
                 data: ['name', 'type', 'superpower'],
@@ -162,7 +203,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Fallo al cargar mascotas');
         }
     }
-
+    
     // --- LÓGICA DE JUEGO ---
     async function updateGameStatus() {
         try {
@@ -197,7 +238,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.addEventListener('click', async (e) => {
         const target = e.target;
         
-        // --- Navegación ---
+        // Navegación
         if (target.matches('.back-btn')) {
             showScreen(target.dataset.target);
         }
@@ -230,7 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // --- Acciones de Creación/Eliminación/Modificación ---
+        // Acciones de Creación/Eliminación/Modificación
         if (target.id === 'create-hero-btn') {
             const name = prompt("Nombre real del héroe:");
             const alias = prompt("Alias del héroe:");
@@ -307,7 +348,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch(e) {}
         }
 
-        // --- Acciones de Juego ---
+        // Acciones de Juego
         if (target.id === 'feed-btn') performGameAction('feed');
         if (target.id === 'walk-btn') performGameAction('walk');
         if (target.id === 'cure-btn') performGameAction('cure');
