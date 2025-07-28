@@ -6,6 +6,8 @@ import swaggerSpec from './swagger.config.js';
 import heroRoutes from './controllers/heroController.js';
 import petRoutes from './controllers/petController.js';
 import gameRoutes from './controllers/gameController.js';
+import accessoryRoutes from './controllers/accessoryController.js';
+
 
 connectDB();
 
@@ -13,6 +15,7 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use('/', accessoryRoutes);
 
 // --- CAMBIOS PARA LA PÁGINA DE INICIO ---
 

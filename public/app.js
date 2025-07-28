@@ -23,7 +23,6 @@ document.addEventListener('DOMContentLoaded', () => {
         '/images/avatars/7.jpg'
     ];
 
-    // Mapeo de acciones a los GIFs correspondientes
     const PET_ACTION_GIFS = {
         jump: '/images/pet_actions/catjump.gif',
         comer: '/images/pet_actions/catcomer.gif',
@@ -32,7 +31,6 @@ document.addEventListener('DOMContentLoaded', () => {
         perso: '/images/pet_actions/catperso.gif',
         debil: '/images/pet_actions/catdebil.gif'
     };
-
 
     // --- ELEMENTOS DEL DOM ---
     const screens = {
@@ -51,10 +49,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const backgroundMusic = document.getElementById('background-music');
     const muteBtn = document.getElementById('mute-btn');
     const petGif = document.getElementById('pet-gif');
+    const accessoryModal = document.getElementById('accessory-modal');
+    const accessoryList = document.getElementById('accessory-list');
+    const closeModalBtn = document.getElementById('close-modal-btn');
+
+
+    // --- LÓGICA DE MÚSICA Y ESTADO ---
+    let musicStarted = false;
+    let state = { selectedHeroId: null, selectedHeroAlias: '', selectedPetId: null, selectedPetName: '' };
+    let lastKnownHealth = 10;
+    let gameStatusInterval;
+    let allAccessories = [];
+    let currentPetInventory = [];
 
 
     // --- LÓGICA DE MÚSICA ---
-    let musicStarted = false;
     if (localStorage.getItem('musicMuted') === 'true') {
         backgroundMusic.muted = true;
         muteBtn.textContent = '🔇';
@@ -78,16 +87,8 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('musicMuted', backgroundMusic.muted);
     });
 
-    // --- ESTADO DE LA APLICACIÓN ---
-    let state = {
-        selectedHeroId: null, selectedHeroAlias: '',
-        selectedPetId: null, selectedPetName: ''
-    };
-    let lastKnownHealth = 10; // Variable para rastrear la vida
-
-
     // --- FUNCIONES AUXILIARES ---
-    const showLoading = (show) => loadingOverlay.classList.toggle('hidden', !show);
+    const showLoading = (show) => document.getElementById('loading-overlay').classList.toggle('hidden', !show);
 
     const showAlert = (message, type = 'success') => {
         const alertDiv = document.createElement('div');
@@ -116,11 +117,12 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const showScreen = (screenName) => {
         Object.values(screens).forEach(screen => screen.classList.remove('active'));
-        if (screens[screenName]) {
-            screens[screenName].classList.add('active');
+        if (screens[screenName]) screens[screenName].classList.add('active');
+        
+        clearInterval(gameStatusInterval);
+        if (screenName === 'game') {
+            gameStatusInterval = setInterval(updateGameStatus, 5000);
         }
-        body.className = '';
-        if (screenName === 'game') body.classList.add('game-active');
     };
 
     const renderList = (listElement, items, config) => {
@@ -153,19 +155,49 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
     
-    // --- LÓGICA DE ANIMACIÓN DE MASCOTAS ---
+    // --- LÓGICA DE ANIMACIÓN Y ACCESORIOS ---
     let gifTimeout;
     function playActionGif(actionName, duration = 2500) {
         clearTimeout(gifTimeout);
         if (PET_ACTION_GIFS[actionName]) {
             petGif.src = PET_ACTION_GIFS[actionName];
         }
-
         gifTimeout = setTimeout(() => {
-            updateGameStatus(true); // Actualiza el estado sin volver a activar la animación de daño
+            updateGameStatus(true);
         }, duration);
     }
     
+    async function showAccessoryModal(mode) {
+        const status = await apiRequest('/game/status');
+        currentPetInventory = status.inventario || [];
+        
+        if (allAccessories.length === 0) {
+            allAccessories = await apiRequest('/accessories');
+        }
+
+        accessoryList.innerHTML = '';
+        const itemsToShow = mode === 'buy' ? allAccessories : allAccessories.filter(acc => currentPetInventory.includes(acc.id));
+
+        if (itemsToShow.length === 0) {
+            accessoryList.innerHTML = `<p style="text-align: center;">${mode === 'buy' ? 'No hay más accesorios en la tienda.' : 'No tienes accesorios para equipar.'}</p>`;
+        }
+
+        itemsToShow.forEach(acc => {
+            const owned = currentPetInventory.includes(acc.id);
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'accessory-item';
+            itemDiv.innerHTML = `
+                <span>${acc.nombre} (${acc.costo} 🪙)</span>
+                <button data-id="${acc.id}" class="${mode}-btn" ${owned && mode === 'buy' ? 'disabled' : ''}>
+                    ${owned ? (mode === 'buy' ? 'Comprado' : 'Equipar') : 'Comprar'}
+                </button>
+            `;
+            accessoryList.appendChild(itemDiv);
+        });
+
+        accessoryModal.classList.remove('hidden');
+    }
+
     // --- LÓGICA DE JUEGO ---
     async function updateGameStatus(skipDamageCheck = false) {
         try {
@@ -202,7 +234,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (result.message) showAlert(result.message);
             return Promise.resolve();
         } catch (error) {
-            updateGameStatus();
             return Promise.reject(error);
         }
     }
@@ -249,7 +280,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- EVENT LISTENERS ---
     document.body.addEventListener('click', async (e) => {
         const target = e.target;
-        if (target.matches('.back-btn')) showScreen(target.dataset.target);
+        if (target.matches('.back-btn')) {
+            clearInterval(gameStatusInterval);
+            showScreen(target.dataset.target);
+        }
         
         if (target.id === 'select-hero-btn') {
             if (!state.selectedHeroId) return showAlert("Por favor, selecciona un héroe.", 'error');
@@ -270,6 +304,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         if (target.id === 'logout-btn') {
+            clearInterval(gameStatusInterval);
             try {
                 await apiRequest('/game/logout', { method: 'POST' });
                 showAlert("Has terminado de jugar.");
@@ -351,41 +386,35 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch(e) {}
         }
 
-        // Acciones de Juego con animación
         if (target.id === 'feed-btn') {
-            performGameAction('feed')
-                .then(() => playActionGif('comer'))
-                .catch(() => {
-                    // Si la acción falla (ej: sobrealimentar), activa la animación de daño.
-                    playActionGif('debil');
-                });
+            performGameAction('feed').then(() => playActionGif('comer')).catch(() => playActionGif('debil'));
         }
         if (target.id === 'walk-btn') {
-            performGameAction('walk')
-                .then(() => playActionGif('salir'))
-                .catch(() => {
-                    // Si la acción falla, activa la animación de daño.
-                    playActionGif('debil');
-                });
+            performGameAction('walk').then(() => playActionGif('salir')).catch(() => playActionGif('debil'));
         }
         if (target.id === 'cure-btn') {
-            performGameAction('cure')
-                .then(() => playActionGif('salud'))
-                .catch(() => {});
+            performGameAction('cure').then(() => playActionGif('salud')).catch(() => {});
         }
         if (target.id === 'revert-personality-btn') {
-            performGameAction('revert-personality')
-                .then(() => playActionGif('perso'))
-                .catch(() => {});
+            performGameAction('revert-personality').then(() => playActionGif('perso')).catch(() => {});
         }
         
         if (target.id === 'buy-accessory-btn') {
-            const id = prompt("ID del accesorio a comprar:");
-            if (id) performGameAction(`buy/${id}`).catch(() => {});
+            showAccessoryModal('buy');
         }
         if (target.id === 'equip-accessory-btn') {
-            const id = prompt("ID del accesorio a equipar:");
-            if (id) performGameAction(`equip/${id}`).catch(() => {});
+            showAccessoryModal('equip');
+        }
+        if (target.id === 'close-modal-btn') {
+            accessoryModal.classList.add('hidden');
+        }
+
+        if (target.matches('.buy-btn') || target.matches('.equip-btn')) {
+            const id = target.dataset.id;
+            const action = target.matches('.buy-btn') ? `buy/${id}` : `equip/${id}`;
+            await performGameAction(action);
+            accessoryModal.classList.add('hidden');
+            updateGameStatus(true);
         }
     });
 
