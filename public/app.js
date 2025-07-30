@@ -29,7 +29,13 @@ document.addEventListener('DOMContentLoaded', () => {
         salir: '/images/pet_actions/catsalir.gif',
         salud: '/images/pet_actions/catsalud.gif',
         perso: '/images/pet_actions/catperso.gif',
-        debil: '/images/pet_actions/catdebil.gif'
+        debil: '/images/pet_actions/catdebil.gif',
+        // Nuevas animaciones de accesorios y dinero
+        lentes: '/images/pet_actions/catlentes.gif',
+        sombrero: '/images/pet_actions/catsombrero.gif',
+        capa: '/images/pet_actions/catcapa.gif',
+        mono: '/images/pet_actions/catmono.gif',
+        dinero: '/images/pet_actions/catdinero.gif'
     };
 
     // --- ELEMENTOS DEL DOM ---
@@ -53,7 +59,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const accessoryList = document.getElementById('accessory-list');
     const closeModalBtn = document.getElementById('close-modal-btn');
 
-
     // --- LÓGICA DE MÚSICA Y ESTADO ---
     let musicStarted = false;
     let state = { selectedHeroId: null, selectedHeroAlias: '', selectedPetId: null, selectedPetName: '' };
@@ -61,7 +66,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let gameStatusInterval;
     let allAccessories = [];
     let currentPetInventory = [];
-
 
     // --- LÓGICA DE MÚSICA ---
     if (localStorage.getItem('musicMuted') === 'true') {
@@ -98,8 +102,10 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => alertDiv.remove(), 4000);
     };
 
-    const apiRequest = async (endpoint, options = {}) => {
-        showLoading(true);
+    const apiRequest = async (endpoint, options = {}, showLoader = true) => {
+        if (showLoader) {
+            showLoading(true);
+        }
         try {
             const headers = { 'Content-Type': 'application/json', ...options.headers };
             if (state.selectedHeroId) headers['x-user-id'] = state.selectedHeroId;
@@ -108,10 +114,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) throw new Error(responseData.error || 'Ocurrió un error desconocido.');
             return responseData;
         } catch (error) {
-            showAlert(error.message, 'error');
+            // No mostramos alerta aquí para manejarla específicamente donde se llama
             throw error;
         } finally {
-            showLoading(false);
+            if (showLoader) {
+                showLoading(false);
+            }
         }
     };
     
@@ -168,11 +176,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     async function showAccessoryModal(mode) {
-        const status = await apiRequest('/game/status');
+        const status = await apiRequest('/game/status', {}, false);
         currentPetInventory = status.inventario || [];
         
         if (allAccessories.length === 0) {
-            allAccessories = await apiRequest('/accessories');
+            allAccessories = await apiRequest('/accessories', {}, false);
         }
 
         accessoryList.innerHTML = '';
@@ -201,7 +209,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- LÓGICA DE JUEGO ---
     async function updateGameStatus(skipDamageCheck = false) {
         try {
-            const status = await apiRequest('/game/status');
+            const status = await apiRequest('/game/status', {}, false);
             statusDisplay.innerHTML = `
                 <p><strong>Vida:</strong> ${status.vida} / 10 | <strong>Estado:</strong> ${status.estado}</p>
                 <p><strong>Monedas:</strong> ${status.monedas} 🪙</p>
@@ -216,24 +224,34 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!skipDamageCheck && status.vida < lastKnownHealth) {
                 playActionGif('debil');
             } else {
+                const currentGifFile = petGif.src.split('/').pop();
+                let targetGifFile;
+
                 if (status.vida <= 4) {
-                    petGif.src = PET_ACTION_GIFS.debil;
+                    targetGifFile = PET_ACTION_GIFS.debil.split('/').pop();
+                    if (currentGifFile !== targetGifFile) {
+                        petGif.src = PET_ACTION_GIFS.debil;
+                    }
                 } else {
-                    petGif.src = PET_ACTION_GIFS.jump;
+                    targetGifFile = PET_ACTION_GIFS.jump.split('/').pop();
+                    if (currentGifFile !== targetGifFile) {
+                        petGif.src = PET_ACTION_GIFS.jump;
+                    }
                 }
             }
             lastKnownHealth = status.vida;
         } catch (error) {
-            statusDisplay.innerHTML = `<p style="color: red;">No se pudo cargar el estado.</p>`;
+            // No se muestra alerta para no molestar al usuario en un proceso de fondo
         }
     }
 
     async function performGameAction(action) {
         try {
             const result = await apiRequest(`/game/${action}`, { method: 'POST' });
-            if (result.message) showAlert(result.message);
+            if (result && result.message) showAlert(result.message);
             return Promise.resolve();
         } catch (error) {
+            // Pasamos el objeto de error para poder leer el mensaje
             return Promise.reject(error);
         }
     }
@@ -409,12 +427,39 @@ document.addEventListener('DOMContentLoaded', () => {
             accessoryModal.classList.add('hidden');
         }
 
-        if (target.matches('.buy-btn') || target.matches('.equip-btn')) {
+        if (target.matches('.buy-btn')) {
             const id = target.dataset.id;
-            const action = target.matches('.buy-btn') ? `buy/${id}` : `equip/${id}`;
-            await performGameAction(action);
+            performGameAction(`buy/${id}`)
+                .then(() => {
+                    showAlert("¡Compra exitosa!");
+                    updateGameStatus(true);
+                })
+                .catch((error) => {
+                    if (error && error.message && error.message.includes('suficientes monedas')) {
+                        playActionGif('dinero');
+                    }
+                    showAlert(error.message); // Muestra el mensaje de error de la API
+                });
             accessoryModal.classList.add('hidden');
-            updateGameStatus(true);
+        }
+
+        if (target.matches('.equip-btn')) {
+            const id = parseInt(target.dataset.id);
+            const accessory = allAccessories.find(acc => acc.id === id);
+            let animationName = 'jump'; // Animación por defecto
+
+            if (accessory) {
+                const name = accessory.nombre.toLowerCase();
+                if (name.includes('lentes')) animationName = 'lentes';
+                else if (name.includes('sombrero')) animationName = 'sombrero';
+                else if (name.includes('capa')) animationName = 'capa';
+                else if (name.includes('moño')) animationName = 'mono';
+            }
+
+            performGameAction(`equip/${id}`)
+                .then(() => playActionGif(animationName))
+                .catch(() => {});
+            accessoryModal.classList.add('hidden');
         }
     });
 
