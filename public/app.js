@@ -1,28 +1,17 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- CONFIGURACIÓN ---
-    const API_BASE_URL = ''; // Usar '' para pruebas locales
-
+    const API_BASE_URL = '';
     const HERO_AVATARS = [
-        '/images/hero_avatars/hero1.jpg',
-        '/images/hero_avatars/hero2.jpg',
-        '/images/hero_avatars/hero3.jpg',
-        '/images/hero_avatars/hero4.jpg',
-        '/images/hero_avatars/hero5.jpg',
-        '/images/hero_avatars/hero6.jpg',
-        '/images/hero_avatars/hero7.jpg',
-        '/images/hero_avatars/hero8.jpg'
+        '/images/hero_avatars/hero1.jpg','/images/hero_avatars/hero2.jpg',
+        '/images/hero_avatars/hero3.jpg','/images/hero_avatars/hero4.jpg',
+        '/images/hero_avatars/hero5.jpg','/images/hero_avatars/hero6.jpg',
+        '/images/hero_avatars/hero7.jpg','/images/hero_avatars/hero8.jpg'
     ];
-
     const PET_AVATARS = [
-        '/images/avatars/1.jpg',
-        '/images/avatars/2.jpg',
-        '/images/avatars/3.jpg',
-        '/images/avatars/4.jpg',
-        '/images/avatars/5.jpg',
-        '/images/avatars/6.jpg',
+        '/images/avatars/1.jpg','/images/avatars/2.jpg','/images/avatars/3.jpg',
+        '/images/avatars/4.jpg','/images/avatars/5.jpg','/images/avatars/6.jpg',
         '/images/avatars/7.jpg'
     ];
-
     const PET_ACTION_GIFS = {
         jump: '/images/pet_actions/catjump.gif',
         comer: '/images/pet_actions/catcomer.gif',
@@ -30,7 +19,6 @@ document.addEventListener('DOMContentLoaded', () => {
         salud: '/images/pet_actions/catsalud.gif',
         perso: '/images/pet_actions/catperso.gif',
         debil: '/images/pet_actions/catdebil.gif',
-        // Nuevas animaciones de accesorios y dinero
         lentes: '/images/pet_actions/catlentes.gif',
         sombrero: '/images/pet_actions/catsombrero.gif',
         capa: '/images/pet_actions/catcapa.gif',
@@ -58,6 +46,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const accessoryModal = document.getElementById('accessory-modal');
     const accessoryList = document.getElementById('accessory-list');
     const closeModalBtn = document.getElementById('close-modal-btn');
+    const editModal = document.getElementById('edit-modal');
+    const editModalTitle = document.getElementById('edit-modal-title');
+    const editForm = document.getElementById('edit-form');
+    const closeEditModalBtn = document.getElementById('close-edit-modal-btn');
 
     // --- LÓGICA DE MÚSICA Y ESTADO ---
     let musicStarted = false;
@@ -103,9 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const apiRequest = async (endpoint, options = {}, showLoader = true) => {
-        if (showLoader) {
-            showLoading(true);
-        }
+        if (showLoader) showLoading(true);
         try {
             const headers = { 'Content-Type': 'application/json', ...options.headers };
             if (state.selectedHeroId) headers['x-user-id'] = state.selectedHeroId;
@@ -114,19 +104,15 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) throw new Error(responseData.error || 'Ocurrió un error desconocido.');
             return responseData;
         } catch (error) {
-            // No mostramos alerta aquí para manejarla específicamente donde se llama
             throw error;
         } finally {
-            if (showLoader) {
-                showLoading(false);
-            }
+            if (showLoader) showLoading(false);
         }
     };
     
     const showScreen = (screenName) => {
         Object.values(screens).forEach(screen => screen.classList.remove('active'));
         if (screens[screenName]) screens[screenName].classList.add('active');
-        
         clearInterval(gameStatusInterval);
         if (screenName === 'game') {
             gameStatusInterval = setInterval(updateGameStatus, 5000);
@@ -163,13 +149,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
     
-    // --- LÓGICA DE ANIMACIÓN Y ACCESORIOS ---
+    // --- LÓGICA DE MODALES, ANIMACIÓN Y ACCESORIOS ---
     let gifTimeout;
     function playActionGif(actionName, duration = 2500) {
         clearTimeout(gifTimeout);
-        if (PET_ACTION_GIFS[actionName]) {
-            petGif.src = PET_ACTION_GIFS[actionName];
-        }
+        if (PET_ACTION_GIFS[actionName]) petGif.src = PET_ACTION_GIFS[actionName];
         gifTimeout = setTimeout(() => {
             updateGameStatus(true);
         }, duration);
@@ -178,18 +162,14 @@ document.addEventListener('DOMContentLoaded', () => {
     async function showAccessoryModal(mode) {
         const status = await apiRequest('/game/status', {}, false);
         currentPetInventory = status.inventario || [];
-        
         if (allAccessories.length === 0) {
             allAccessories = await apiRequest('/accessories', {}, false);
         }
-
         accessoryList.innerHTML = '';
         const itemsToShow = mode === 'buy' ? allAccessories : allAccessories.filter(acc => currentPetInventory.includes(acc.id));
-
         if (itemsToShow.length === 0) {
             accessoryList.innerHTML = `<p style="text-align: center;">${mode === 'buy' ? 'No hay más accesorios en la tienda.' : 'No tienes accesorios para equipar.'}</p>`;
         }
-
         itemsToShow.forEach(acc => {
             const owned = currentPetInventory.includes(acc.id);
             const itemDiv = document.createElement('div');
@@ -202,8 +182,45 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             accessoryList.appendChild(itemDiv);
         });
-
         accessoryModal.classList.remove('hidden');
+    }
+
+    function showEditModal(type, data) {
+        editForm.innerHTML = '';
+        let formContent = '';
+        if (type === 'hero') {
+            editModalTitle.textContent = data.id ? `Editar Héroe: ${data.alias}` : 'Crear Nuevo Héroe';
+            formContent = `
+                <input type="hidden" id="edit-id" value="${data.id || ''}">
+                <label for="edit-name">Nombre Real:</label>
+                <input type="text" id="edit-name" value="${data.name || ''}" required>
+                <label for="edit-alias">Alias:</label>
+                <input type="text" id="edit-alias" value="${data.alias || ''}" required>
+                <label for="edit-city">Ciudad:</label>
+                <input type="text" id="edit-city" value="${data.city || ''}">
+                <label for="edit-team">Equipo:</label>
+                <input type="text" id="edit-team" value="${data.team || ''}">
+            `;
+        } else if (type === 'pet') {
+            editModalTitle.textContent = data.id ? `Editar Mascota: ${data.name}` : 'Crear Nueva Mascota';
+            formContent = `
+                <input type="hidden" id="edit-id" value="${data.id || ''}">
+                <label for="edit-name">Nombre:</label>
+                <input type="text" id="edit-name" value="${data.name || ''}" required>
+                <label for="edit-type">Tipo:</label>
+                <input type="text" id="edit-type" value="${data.type || ''}" required>
+                <label for="edit-superpower">Superpoder:</label>
+                <input type="text" id="edit-superpower" value="${data.superpower || ''}">
+            `;
+        }
+        formContent += `
+            <div class="form-actions">
+                <button type="button" id="cancel-edit-btn" class="secondary">Cancelar</button>
+                <button type="submit" class="primary">Guardar</button>
+            </div>
+        `;
+        editForm.innerHTML = formContent;
+        editModal.classList.remove('hidden');
     }
 
     // --- LÓGICA DE JUEGO ---
@@ -226,23 +243,16 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 const currentGifFile = petGif.src.split('/').pop();
                 let targetGifFile;
-
                 if (status.vida <= 4) {
                     targetGifFile = PET_ACTION_GIFS.debil.split('/').pop();
-                    if (currentGifFile !== targetGifFile) {
-                        petGif.src = PET_ACTION_GIFS.debil;
-                    }
+                    if (currentGifFile !== targetGifFile) petGif.src = PET_ACTION_GIFS.debil;
                 } else {
                     targetGifFile = PET_ACTION_GIFS.jump.split('/').pop();
-                    if (currentGifFile !== targetGifFile) {
-                        petGif.src = PET_ACTION_GIFS.jump;
-                    }
+                    if (currentGifFile !== targetGifFile) petGif.src = PET_ACTION_GIFS.jump;
                 }
             }
             lastKnownHealth = status.vida;
-        } catch (error) {
-            // No se muestra alerta para no molestar al usuario en un proceso de fondo
-        }
+        } catch (error) {}
     }
 
     async function performGameAction(action) {
@@ -251,7 +261,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (result && result.message) showAlert(result.message);
             return Promise.resolve();
         } catch (error) {
-            // Pasamos el objeto de error para poder leer el mensaje
             return Promise.reject(error);
         }
     }
@@ -263,15 +272,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 display: hero => `${hero.alias} (${hero.name})`,
                 data: ['alias', 'name', 'city', 'team'],
                 emptyText: 'No hay héroes. ¡Crea el primero!',
-                onSelect: hero => {
-                    state.selectedHeroId = hero.id;
-                    state.selectedHeroAlias = hero.alias;
-                },
+                onSelect: hero => { state.selectedHeroId = hero.id; state.selectedHeroAlias = hero.alias; },
                 avatarType: 'hero'
             });
-        } catch (error) {
-            console.error('Fallo al cargar héroes');
-        }
+        } catch (error) { console.error('Fallo al cargar héroes'); }
     }
     
     async function loadPets() {
@@ -284,15 +288,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 display: pet => `${pet.name} (${pet.type})`,
                 data: ['name', 'type', 'superpower'],
                 emptyText: 'Este héroe no tiene mascotas. ¡Crea una!',
-                onSelect: pet => {
-                    state.selectedPetId = pet.id;
-                    state.selectedPetName = pet.name;
-                },
+                onSelect: pet => { state.selectedPetId = pet.id; state.selectedPetName = pet.name; },
                 avatarType: 'pet'
             });
-        } catch (error) {
-            console.error('Fallo al cargar mascotas');
-        }
+        } catch (error) { console.error('Fallo al cargar mascotas'); }
     }
 
     // --- EVENT LISTENERS ---
@@ -316,9 +315,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 gameScreenTitle.textContent = `Jugando con ${state.selectedPetName}`;
                 showScreen('game');
                 updateGameStatus();
-            } catch (error) {
-                console.error("Fallo al seleccionar mascota para juego");
-            }
+            } catch (error) { console.error("Fallo al seleccionar mascota para juego"); }
         }
         
         if (target.id === 'logout-btn') {
@@ -326,36 +323,29 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 await apiRequest('/game/logout', { method: 'POST' });
                 showAlert("Has terminado de jugar.");
-                showScreen('pet');
-            } catch (error) {
-                 console.error("Fallo al cerrar sesión del juego");
-            }
+                showScreen('hero');
+            } catch (error) { console.error("Fallo al cerrar sesión del juego"); }
+        }
+
+        if (target.id === 'go-to-welcome-btn') {
+            window.location.href = '/'; // Recarga la aplicación a la página de bienvenida
         }
 
         if (target.id === 'create-hero-btn') {
-            const name = prompt("Nombre real del héroe:");
-            const alias = prompt("Alias del héroe:");
-            if (!name || !alias) return;
-            try {
-                await apiRequest('/heroes', { method: 'POST', body: JSON.stringify({ name, alias, city: "N/A", team: "N/A" }) });
-                showAlert('¡Héroe creado!');
-                loadHeroes();
-            } catch(e) {}
+            showEditModal('hero', {});
         }
         
         if (target.id === 'modify-hero-btn') {
             if (!state.selectedHeroId) return showAlert("Selecciona un héroe para modificar.", 'error');
             const selectedHeroLi = heroList.querySelector(`[data-id='${state.selectedHeroId}']`);
-            const name = prompt("Nuevo nombre real del héroe:", selectedHeroLi.dataset.name);
-            const alias = prompt("Nuevo alias del héroe:", selectedHeroLi.dataset.alias);
-            const city = prompt("Nueva ciudad del héroe:", selectedHeroLi.dataset.city);
-            const team = prompt("Nuevo equipo del héroe:", selectedHeroLi.dataset.team);
-            if (!name || !alias) return;
-            try {
-                await apiRequest(`/heroes/${state.selectedHeroId}`, { method: 'PUT', body: JSON.stringify({ name, alias, city, team }) });
-                showAlert('¡Héroe modificado!');
-                loadHeroes();
-            } catch(e) {}
+            const heroData = {
+                id: state.selectedHeroId,
+                name: selectedHeroLi.dataset.name,
+                alias: selectedHeroLi.dataset.alias,
+                city: selectedHeroLi.dataset.city,
+                team: selectedHeroLi.dataset.team
+            };
+            showEditModal('hero', heroData);
         }
 
         if (target.id === 'delete-hero-btn') {
@@ -370,28 +360,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         if (target.id === 'create-pet-btn') {
-            const name = prompt("Nombre de la mascota:");
-            const type = prompt("Tipo de animal:");
-            if (!name || !type) return;
-            try {
-                await apiRequest('/pets', { method: 'POST', body: JSON.stringify({ name, type, superpower: prompt("Superpoder:") || "Ninguno" }) });
-                showAlert('¡Mascota creada!');
-                loadPets();
-            } catch(e) {}
+             showEditModal('pet', {});
         }
         
         if (target.id === 'modify-pet-btn') {
             if (!state.selectedPetId) return showAlert("Selecciona una mascota para modificar.", 'error');
             const selectedPetLi = petList.querySelector(`[data-id='${state.selectedPetId}']`);
-            const name = prompt("Nuevo nombre de la mascota:", selectedPetLi.dataset.name);
-            const type = prompt("Nuevo tipo de animal:", selectedPetLi.dataset.type);
-            const superpower = prompt("Nuevo superpoder:", selectedPetLi.dataset.superpower);
-            if (!name || !type) return;
-            try {
-                await apiRequest(`/pets/${state.selectedPetId}`, { method: 'PUT', body: JSON.stringify({ name, type, superpower }) });
-                showAlert('¡Mascota modificada!');
-                loadPets();
-            } catch(e) {}
+            const petData = {
+                id: state.selectedPetId,
+                name: selectedPetLi.dataset.name,
+                type: selectedPetLi.dataset.type,
+                superpower: selectedPetLi.dataset.superpower
+            };
+            showEditModal('pet', petData);
         }
         
         if (target.id === 'delete-pet-btn') {
@@ -426,6 +407,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (target.id === 'close-modal-btn') {
             accessoryModal.classList.add('hidden');
         }
+        if (target.id === 'close-edit-modal-btn' || target.id === 'cancel-edit-btn') {
+            editModal.classList.add('hidden');
+        }
 
         if (target.matches('.buy-btn')) {
             const id = target.dataset.id;
@@ -438,7 +422,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (error && error.message && error.message.includes('suficientes monedas')) {
                         playActionGif('dinero');
                     }
-                    showAlert(error.message); // Muestra el mensaje de error de la API
+                    showAlert(error.message, 'error');
                 });
             accessoryModal.classList.add('hidden');
         }
@@ -446,8 +430,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (target.matches('.equip-btn')) {
             const id = parseInt(target.dataset.id);
             const accessory = allAccessories.find(acc => acc.id === id);
-            let animationName = 'jump'; // Animación por defecto
-
+            let animationName = 'jump';
             if (accessory) {
                 const name = accessory.nombre.toLowerCase();
                 if (name.includes('lentes')) animationName = 'lentes';
@@ -455,11 +438,45 @@ document.addEventListener('DOMContentLoaded', () => {
                 else if (name.includes('capa')) animationName = 'capa';
                 else if (name.includes('moño')) animationName = 'mono';
             }
-
-            performGameAction(`equip/${id}`)
-                .then(() => playActionGif(animationName))
-                .catch(() => {});
+            performGameAction(`equip/${id}`).then(() => playActionGif(animationName)).catch(() => {});
             accessoryModal.classList.add('hidden');
+        }
+    });
+
+    editForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('edit-id').value;
+        let endpoint = '';
+        let body = {};
+        let refreshFunction;
+        let method = id ? 'PUT' : 'POST';
+
+        if (editModalTitle.textContent.includes('Héroe')) {
+            endpoint = id ? `/heroes/${id}` : '/heroes';
+            body = {
+                name: document.getElementById('edit-name').value,
+                alias: document.getElementById('edit-alias').value,
+                city: document.getElementById('edit-city').value,
+                team: document.getElementById('edit-team').value
+            };
+            refreshFunction = loadHeroes;
+        } else {
+            endpoint = id ? `/pets/${id}` : '/pets';
+            body = {
+                name: document.getElementById('edit-name').value,
+                type: document.getElementById('edit-type').value,
+                superpower: document.getElementById('edit-superpower').value
+            };
+            refreshFunction = loadPets;
+        }
+
+        try {
+            await apiRequest(endpoint, { method, body: JSON.stringify(body) });
+            showAlert(`¡${id ? 'Actualizado' : 'Creado'} con éxito!`);
+            editModal.classList.add('hidden');
+            refreshFunction();
+        } catch (error) {
+            showAlert(`No se pudo ${id ? 'actualizar' : 'crear'}.`, 'error');
         }
     });
 

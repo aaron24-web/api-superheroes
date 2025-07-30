@@ -366,3 +366,29 @@ button.danger:hover {
 #accessory-list .accessory-item button:disabled {
     background-color: #ccc; cursor: not-allowed;
 }
+/* --- Estilos para el Formulario de Edición --- */
+#edit-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+#edit-form label {
+    font-weight: 600;
+    color: #495057;
+}
+
+#edit-form input {
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    font-size: 1rem;
+    font-family: var(--font-family);
+}
+
+#edit-form .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 1rem;
+}
