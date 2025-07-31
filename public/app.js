@@ -52,7 +52,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const editForm = document.getElementById('edit-form');
     const closeEditModalBtn = document.getElementById('close-edit-modal-btn');
     const gameGrid = document.querySelector('.game-grid');
-    const modifyPetBtn = document.getElementById('modify-pet-btn'); // Botón a deshabilitar
+    const modifyPetBtn = document.getElementById('modify-pet-btn');
+    const showAllHeroesBtn = document.getElementById('show-all-heroes-btn');
 
     // --- LÓGICA DE MÚSICA Y ESTADO ---
     let musicStarted = false;
@@ -233,7 +234,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (status.estado === 'muerto') {
                 statusDisplay.innerHTML = `
                     <p><strong>Vida:</strong> ${status.vida} / 10 | <strong>Estado:</strong> ${status.estado}</p>
-                    <p style="text-align: center; font-style: italic; margin-top: 1rem;">"Lo único cierto para todos, es la muerte" - Luisito Comunica</p>
+                    <p style="text-align: center; font-style: italic; margin-top: 1rem;">"Lo único cierto para todos, es la muerte" - Chabelo 1510</p>
                 `;
                 petGif.src = PET_ACTION_GIFS.dead;
                 gameGrid.classList.add('hidden');
@@ -280,40 +281,34 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function loadHeroes() {
+    async function loadHeroes(endpoint = '/heroes') {
         try {
-            const heroes = await apiRequest('/heroes');
+            const heroes = await apiRequest(endpoint);
             renderList(heroList, heroes, {
-                display: hero => `${hero.alias} (${hero.name})`,
+                display: hero => `${hero.alias} (${hero.name}) - [${hero.city}]`,
                 data: ['alias', 'name', 'city', 'team'],
-                emptyText: 'No hay héroes. ¡Crea el primero!',
+                emptyText: endpoint === '/heroes' ? 'No hay héroes. ¡Crea el primero!' : 'No se encontraron héroes en esa ciudad.',
                 onSelect: hero => { state.selectedHeroId = hero.id; state.selectedHeroAlias = hero.alias; },
                 avatarType: 'hero'
             });
         } catch (error) { console.error('Fallo al cargar héroes'); }
     }
     
-    // --- LÓGICA DE MASCOTAS (MODIFICADA) ---
     async function loadPets() {
         petScreenTitle.textContent = `Mascotas de ${state.selectedHeroAlias}`;
         petList.innerHTML = '';
         state.selectedPetId = null;
-        modifyPetBtn.disabled = true; // Deshabilita el botón por defecto
+        modifyPetBtn.disabled = true;
         try {
             const pets = await apiRequest('/pets');
             renderList(petList, pets, {
-                display: pet => `${pet.name} (${pet.type}) - [${pet.status}]`, // Muestra el estado
-                data: ['name', 'type', 'superpower', 'status'], // Añade el status a los datos
+                display: pet => `${pet.name} (${pet.type}) - [${pet.status}]`,
+                data: ['name', 'type', 'superpower', 'status'],
                 emptyText: 'Este héroe no tiene mascotas. ¡Crea una!',
                 onSelect: pet => {
                     state.selectedPetId = pet.id;
                     state.selectedPetName = pet.name;
-                    // Habilita o deshabilita el botón de modificar según el estado
-                    if (pet.status === 'muerto') {
-                        modifyPetBtn.disabled = true;
-                    } else {
-                        modifyPetBtn.disabled = false;
-                    }
+                    modifyPetBtn.disabled = pet.status === 'muerto';
                 },
                 avatarType: 'pet'
             });
@@ -358,6 +353,19 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (target.id === 'go-to-welcome-btn') {
             window.location.href = '/';
+        }
+
+        if (target.id === 'find-by-city-btn') {
+            const city = prompt("Introduce el nombre de la ciudad:");
+            if (city) {
+                loadHeroes(`/heroes/city/${city}`);
+                showAllHeroesBtn.classList.remove('hidden');
+            }
+        }
+
+        if (target.id === 'show-all-heroes-btn') {
+            loadHeroes('/heroes');
+            showAllHeroesBtn.classList.add('hidden');
         }
 
         if (target.id === 'create-hero-btn') {
