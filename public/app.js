@@ -23,7 +23,8 @@ document.addEventListener('DOMContentLoaded', () => {
         sombrero: '/images/pet_actions/catsombrero.gif',
         capa: '/images/pet_actions/catcapa.gif',
         mono: '/images/pet_actions/catmono.gif',
-        dinero: '/images/pet_actions/catdinero.gif'
+        dinero: '/images/pet_actions/catdinero.gif',
+        dead: '/images/pet_actions/catdead.gif'
     };
 
     // --- ELEMENTOS DEL DOM ---
@@ -50,6 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const editModalTitle = document.getElementById('edit-modal-title');
     const editForm = document.getElementById('edit-form');
     const closeEditModalBtn = document.getElementById('close-edit-modal-btn');
+    const gameGrid = document.querySelector('.game-grid'); // Contenedor de botones de acción
 
     // --- LÓGICA DE MÚSICA Y ESTADO ---
     let musicStarted = false;
@@ -238,6 +240,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     Sombrero: ${status.accesorios_equipados.sombrero?.nombre || 'Ninguno'}
                 </p>`;
             
+            // --- LÓGICA DE GIF (MODIFICADA) ---
+            if (status.estado === 'muerto') {
+                petGif.src = PET_ACTION_GIFS.dead;
+                gameGrid.classList.add('hidden'); // Oculta los botones de acción
+                return; 
+            } else {
+                gameGrid.classList.remove('hidden'); // Muestra los botones si la mascota está viva
+            }
+
             if (!skipDamageCheck && status.vida < lastKnownHealth) {
                 playActionGif('debil');
             } else {
@@ -326,9 +337,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 showScreen('hero');
             } catch (error) { console.error("Fallo al cerrar sesión del juego"); }
         }
-
+        
         if (target.id === 'go-to-welcome-btn') {
-            window.location.href = '/'; // Recarga la aplicación a la página de bienvenida
+            window.location.href = '/';
         }
 
         if (target.id === 'create-hero-btn') {
