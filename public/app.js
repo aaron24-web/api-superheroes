@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const editModalTitle = document.getElementById('edit-modal-title');
     const editForm = document.getElementById('edit-form');
     const closeEditModalBtn = document.getElementById('close-edit-modal-btn');
-    const gameGrid = document.querySelector('.game-grid'); // Contenedor de botones de acción
+    const gameGrid = document.querySelector('.game-grid');
 
     // --- LÓGICA DE MÚSICA Y ESTADO ---
     let musicStarted = false;
@@ -229,6 +229,19 @@ document.addEventListener('DOMContentLoaded', () => {
     async function updateGameStatus(skipDamageCheck = false) {
         try {
             const status = await apiRequest('/game/status', {}, false);
+
+            if (status.estado === 'muerto') {
+                statusDisplay.innerHTML = `
+                    <p><strong>Vida:</strong> ${status.vida} / 10 | <strong>Estado:</strong> ${status.estado}</p>
+                    <p style="text-align: center; font-style: italic; margin-top: 1rem;">"Lo único cierto para todos, es la muerte" - Chabelo</p>
+                `;
+                petGif.src = PET_ACTION_GIFS.dead;
+                gameGrid.classList.add('hidden');
+                return; 
+            } else {
+                gameGrid.classList.remove('hidden');
+            }
+            
             statusDisplay.innerHTML = `
                 <p><strong>Vida:</strong> ${status.vida} / 10 | <strong>Estado:</strong> ${status.estado}</p>
                 <p><strong>Monedas:</strong> ${status.monedas} 🪙</p>
@@ -240,15 +253,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     Sombrero: ${status.accesorios_equipados.sombrero?.nombre || 'Ninguno'}
                 </p>`;
             
-            // --- LÓGICA DE GIF (MODIFICADA) ---
-            if (status.estado === 'muerto') {
-                petGif.src = PET_ACTION_GIFS.dead;
-                gameGrid.classList.add('hidden'); // Oculta los botones de acción
-                return; 
-            } else {
-                gameGrid.classList.remove('hidden'); // Muestra los botones si la mascota está viva
-            }
-
             if (!skipDamageCheck && status.vida < lastKnownHealth) {
                 playActionGif('debil');
             } else {
@@ -334,7 +338,7 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 await apiRequest('/game/logout', { method: 'POST' });
                 showAlert("Has terminado de jugar.");
-                showScreen('hero');
+                showScreen('pet');
             } catch (error) { console.error("Fallo al cerrar sesión del juego"); }
         }
         
