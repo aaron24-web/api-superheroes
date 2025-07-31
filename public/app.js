@@ -52,6 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const editForm = document.getElementById('edit-form');
     const closeEditModalBtn = document.getElementById('close-edit-modal-btn');
     const gameGrid = document.querySelector('.game-grid');
+    const modifyPetBtn = document.getElementById('modify-pet-btn'); // Botón a deshabilitar
 
     // --- LÓGICA DE MÚSICA Y ESTADO ---
     let musicStarted = false;
@@ -229,11 +230,10 @@ document.addEventListener('DOMContentLoaded', () => {
     async function updateGameStatus(skipDamageCheck = false) {
         try {
             const status = await apiRequest('/game/status', {}, false);
-
             if (status.estado === 'muerto') {
                 statusDisplay.innerHTML = `
                     <p><strong>Vida:</strong> ${status.vida} / 10 | <strong>Estado:</strong> ${status.estado}</p>
-                    <p style="text-align: center; font-style: italic; margin-top: 1rem;">"Lo único cierto para todos, es la muerte" - Chabelo</p>
+                    <p style="text-align: center; font-style: italic; margin-top: 1rem;">"Lo único cierto para todos, es la muerte" - Luisito Comunica</p>
                 `;
                 petGif.src = PET_ACTION_GIFS.dead;
                 gameGrid.classList.add('hidden');
@@ -293,17 +293,28 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) { console.error('Fallo al cargar héroes'); }
     }
     
+    // --- LÓGICA DE MASCOTAS (MODIFICADA) ---
     async function loadPets() {
         petScreenTitle.textContent = `Mascotas de ${state.selectedHeroAlias}`;
         petList.innerHTML = '';
         state.selectedPetId = null;
+        modifyPetBtn.disabled = true; // Deshabilita el botón por defecto
         try {
             const pets = await apiRequest('/pets');
             renderList(petList, pets, {
-                display: pet => `${pet.name} (${pet.type})`,
-                data: ['name', 'type', 'superpower'],
+                display: pet => `${pet.name} (${pet.type}) - [${pet.status}]`, // Muestra el estado
+                data: ['name', 'type', 'superpower', 'status'], // Añade el status a los datos
                 emptyText: 'Este héroe no tiene mascotas. ¡Crea una!',
-                onSelect: pet => { state.selectedPetId = pet.id; state.selectedPetName = pet.name; },
+                onSelect: pet => {
+                    state.selectedPetId = pet.id;
+                    state.selectedPetName = pet.name;
+                    // Habilita o deshabilita el botón de modificar según el estado
+                    if (pet.status === 'muerto') {
+                        modifyPetBtn.disabled = true;
+                    } else {
+                        modifyPetBtn.disabled = false;
+                    }
+                },
                 avatarType: 'pet'
             });
         } catch (error) { console.error('Fallo al cargar mascotas'); }
@@ -330,7 +341,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 gameScreenTitle.textContent = `Jugando con ${state.selectedPetName}`;
                 showScreen('game');
                 updateGameStatus();
-            } catch (error) { console.error("Fallo al seleccionar mascota para juego"); }
+            } catch (error) { 
+                showAlert(error.message, 'error');
+                console.error("Fallo al seleccionar mascota para juego", error);
+            }
         }
         
         if (target.id === 'logout-btn') {
