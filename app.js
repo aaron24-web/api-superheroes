@@ -2,43 +2,41 @@ import express from 'express';
 import cors from 'cors';
 import { connectDB } from './config/db.js';
 import swaggerUi from 'swagger-ui-express';
-import swaggerSpec from './swagger.config.js';
+import swaggerSpec from './swagger.config.js'; 
+
+// Importa todas tus rutas
+import authRoutes from './controllers/authController.js';
 import heroRoutes from './controllers/heroController.js';
 import petRoutes from './controllers/petController.js';
 import gameRoutes from './controllers/gameController.js';
 import accessoryRoutes from './controllers/accessoryController.js';
 
-
-connectDB();
+connectDB(); 
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
-app.use('/', accessoryRoutes);
 
-// --- CAMBIOS PARA LA PÁGINA DE INICIO ---
+// --- ESTE ES EL ORDEN CORRECTO ---
 
-// 1. Establece welcome.html como la página principal al visitar la raíz del sitio.
+// 1. Rutas de la interfaz (archivos estáticos y página de bienvenida)
+// Esto se sirve PRIMERO para que no pida autenticación para imágenes, CSS, etc.
+app.use(express.static('public'));
 app.get('/', (req, res) => {
-    // Envía el archivo welcome.html que está en la carpeta 'public'.
     res.sendFile('public/welcome.html', { root: '.' });
 });
 
-// 2. Sigue sirviendo todos los archivos de la carpeta 'public' de forma estática.
-// Esto es crucial para que welcome.html pueda cargar su CSS y para que el botón "Entrar" funcione.
-app.use(express.static('public'));
+// 2. Rutas de la API (con el prefijo /api)
+// Esto se sirve DESPUÉS. Todas estas rutas sí requerirán autenticación.
+app.use('/api', authRoutes);
+app.use('/api', heroRoutes);
+app.use('/api', petRoutes);
+app.use('/api', gameRoutes);
+app.use('/api', accessoryRoutes);
 
-
-// --- RUTAS DE LA API Y SWAGGER (Sin cambios) ---
-
-// La documentación de Swagger seguirá disponible en su propia ruta.
+// 3. Documentación de Swagger (al final)
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-
-// Las rutas de la API siguen funcionando igual.
-app.use('/', heroRoutes);
-app.use('/', petRoutes);
-app.use('/', gameRoutes);
 
 
 // El puerto ahora lo tomará de una variable de entorno que Render nos da.

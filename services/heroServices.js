@@ -2,8 +2,9 @@ import heroRepository from '../repositories/heroRepository.js';
 import petRepository from '../repositories/petRepository.js'; // Para borrar mascotas asociadas
 import Hero from '../models/heroModel.js';
 
-async function getAllHeroes() {
-    return await heroRepository.getHeroes();
+// Modificado para aceptar un userId y filtrar los héroes
+async function getAllHeroes(userId) {
+    return await heroRepository.getHeroes(userId);
 }
 
 async function getHeroById(id) {
@@ -11,41 +12,37 @@ async function getHeroById(id) {
     if (!hero) {
         throw new Error('Héroe no encontrado');
     }
+    // Opcional: Para mayor seguridad, se podría verificar que hero.userId coincida con el del usuario del token.
     return hero;
 }
 
-// --- FUNCIÓN CORREGIDA ---
-// Ahora llama directamente a la función 'addHero' del repositorio.
-async function addHero(heroData) {
-    // Usamos el modelo para asegurar la estructura correcta
+// Modificado para aceptar un userId y asociarlo al nuevo héroe
+async function addHero(heroData, userId) {
     const newHero = new Hero(null, heroData.name, heroData.alias, heroData.city, heroData.team);
-    return await heroRepository.addHero(newHero);
+    return await heroRepository.addHero(newHero, userId);
 }
 
-// --- FUNCIÓN CORREGIDA ---
-// Ahora llama directamente a la función 'updateHero' del repositorio.
 async function updateHero(id, heroData) {
     await getHeroById(id); // Valida que el héroe exista primero
     return await heroRepository.updateHero(id, heroData);
 }
 
-// --- FUNCIÓN CORREGIDA ---
-// Ahora llama directamente a la función 'deleteHero' del repositorio.
 async function deleteHero(id) {
     await getHeroById(id); // Valida que el héroe exista
 
-    // Lógica adicional para borrar las mascotas del héroe y mantener la BD limpia
+    // Lógica para borrar las mascotas del héroe
     const pets = await petRepository.getPets();
     const remainingPets = pets.filter(p => p.heroId !== parseInt(id));
-    await petRepository.savePets(remainingPets); // Esta función sí existe y es necesaria
+    await petRepository.savePets(remainingPets);
     
-    // Ahora sí, borramos al héroe
+    // Borra al héroe
     await heroRepository.deleteHero(id);
     return { message: 'Héroe y sus mascotas asociadas han sido eliminados.' };
 }
 
-async function findHeroesByCity(city) {
-    const heroes = await heroRepository.getHeroes();
+// Modificado para buscar solo dentro de los héroes del usuario
+async function findHeroesByCity(city, userId) {
+    const heroes = await heroRepository.getHeroes(userId); // Obtiene solo los héroes del usuario
     return heroes.filter(h => h.city.toLowerCase() === city.toLowerCase());
 }
 
@@ -54,7 +51,6 @@ async function faceVillain(heroId, villainName) {
     return `${hero.alias} está enfrentando a ${villainName}!`;
 }
 
-// Exportamos todas las funciones que usan los controladores
 export default {
     getAllHeroes,
     getHeroById,

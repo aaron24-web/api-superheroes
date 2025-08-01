@@ -2,98 +2,79 @@ import express from 'express';
 import petService from '../services/petService.js';
 import Pet from '../models/petModel.js';
 import { check, validationResult } from 'express-validator';
+import { protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-// --- Middleware de Autenticación de Usuario ---
-// Este middleware se ejecuta ANTES que cualquier ruta de mascotas.
-// Su trabajo es verificar que el encabezado 'x-user-id' exista y añadirlo a la petición.
-const userAuthMiddleware = (req, res, next) => {
-    const userId = req.headers['x-user-id'];
+// 1. Proteger todas las rutas de mascotas para asegurar que un usuario ha iniciado sesión.
+router.use(protect);
 
-    if (!userId) {
-        // Si no se proporciona el encabezado, se rechaza la petición.
-        return res.status(401).json({ error: "El encabezado 'x-user-id' es requerido para esta operación." });
+// 2. Middleware para obtener el ID del HÉROE seleccionado desde los encabezados.
+const getSelectedHeroId = (req, res, next) => {
+    const heroId = req.headers['x-user-id'];
+    if (!heroId) {
+        return res.status(400).json({ error: "El encabezado 'x-user-id' (ID del Héroe) es requerido." });
     }
-    // Añadimos el userId al objeto 'req' para que las siguientes funciones puedan usarlo.
-    req.userId = parseInt(userId, 10);
-    next(); // Pasa al siguiente middleware o a la ruta correspondiente.
+    req.heroId = parseInt(heroId, 10);
+    next();
 };
 
-// Aplicamos el middleware a TODAS las rutas que empiecen con /pets.
-// Esto protege todos los endpoints de mascotas (GET, POST, PUT, DELETE).
-router.use('/pets', userAuthMiddleware);
-
-
-// --- Endpoints Protegidos ---
-
-// GET /pets - Obtiene solo las mascotas DEL USUARIO ACTUAL.
-router.get("/pets", async (req, res) => {
+// GET /pets - Obtiene solo las mascotas del HÉROE seleccionado
+router.get("/pets", getSelectedHeroId, async (req, res) => {
     try {
-        // Pasamos el ID del usuario (obtenido por el middleware) al servicio.
-        const pets = await petService.getAllPetsForUser(req.userId);
+        const pets = await petService.getAllPetsForHero(req.heroId);
         res.json(pets);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
 
-// GET /pets/:id - Obtiene una mascota específica DEL USUARIO ACTUAL.
-router.get("/pets/:id", async (req, res) => {
+// POST /pets - Crea una mascota para el HÉROE seleccionado
+router.post("/pets", getSelectedHeroId, [
+    check('name', 'El nombre es requerido').not().isEmpty(),
+    check('type', 'El tipo es requerido').not().isEmpty()
+], async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+    try {
+        const { name, type, superpower } = req.body;
+        const newPetData = new Pet(null, name, type, superpower, null);
+        const addedPet = await petService.createPetForHero(newPetData, req.heroId);
+        res.status(201).json(addedPet);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+// GET /pets/:id
+router.get("/pets/:id", getSelectedHeroId, async (req, res) => {
     try {
         const petId = req.params.id;
-        const pet = await petService.getPetByIdForUser(petId, req.userId);
+        const pet = await petService.getPetByIdForHero(petId, req.heroId);
         res.json(pet);
     } catch (error) {
         res.status(404).json({ error: error.message });
     }
 });
 
-
-// POST /pets - Crea una mascota PARA EL USUARIO ACTUAL.
-router.post("/pets",
-    [
-        // La validación ya no necesita 'heroId' porque lo tomamos del encabezado.
-        check('name', 'El nombre es requerido').not().isEmpty(),
-        check('type', 'El tipo es requerido').not().isEmpty()
-    ],
-    async (req, res) => {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
-        }
-
-        try {
-            const { name, type, superpower } = req.body;
-            // Creamos la mascota. El heroId se asignará en el servicio usando req.userId.
-            const newPet = new Pet(null, name, type, superpower, null);
-            const addedPet = await petService.createPetForUser(newPet, req.userId);
-            res.status(201).json(addedPet);
-        } catch (error) {
-            // Errores de negocio como "el héroe ya tiene una mascota".
-            res.status(400).json({ error: error.message });
-        }
-    }
-);
-
-// PUT /pets/:id - Actualiza una mascota DEL USUARIO ACTUAL.
-router.put("/pets/:id", async (req, res) => {
+// PUT /pets/:id
+router.put("/pets/:id", getSelectedHeroId, async (req, res) => {
     try {
         const petId = req.params.id;
-        // Pasamos tanto el ID de la mascota como el ID del usuario para validación.
-        const updatedPet = await petService.updatePetForUser(petId, req.body, req.userId);
+        const updatedPet = await petService.updatePetForHero(petId, req.body, req.heroId);
         res.json(updatedPet);
     } catch (error) {
         res.status(404).json({ error: error.message });
     }
 });
 
-// DELETE /pets/:id - Elimina una mascota DEL USUARIO ACTUAL.
-router.delete('/pets/:id', async (req, res) => {
+// DELETE /pets/:id
+router.delete('/pets/:id', getSelectedHeroId, async (req, res) => {
     try {
         const petId = req.params.id;
-        // Pasamos el ID de la mascota y el del usuario para asegurar que solo borre la suya.
-        await petService.deletePetForUser(petId, req.userId);
+        await petService.deletePetForHero(petId, req.heroId);
         res.status(200).json({ message: 'Mascota eliminada exitosamente.' });
     } catch (error) {
         res.status(404).json({ error: error.message });

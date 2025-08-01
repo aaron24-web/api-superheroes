@@ -1,6 +1,14 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- CONFIGURACIÓN ---
-    const API_BASE_URL = '';
+    const API_BASE_URL = '/api'; // <-- ESTA ES LA CORRECCIÓN CLAVE
+
+    // --- AUTENTICACIÓN ---
+    const token = localStorage.getItem('authToken');
+    if (!token && window.location.pathname.includes('index.html')) {
+        window.location.href = '/welcome.html';
+        return;
+    }
+
     const HERO_AVATARS = [
         '/images/hero_avatars/hero1.jpg','/images/hero_avatars/hero2.jpg',
         '/images/hero_avatars/hero3.jpg','/images/hero_avatars/hero4.jpg',
@@ -64,28 +72,30 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentPetInventory = [];
 
     // --- LÓGICA DE MÚSICA ---
-    if (localStorage.getItem('musicMuted') === 'true') {
-        backgroundMusic.muted = true;
-        muteBtn.textContent = '🔇';
-    } else {
-        backgroundMusic.muted = false;
-        muteBtn.textContent = '🔊';
-    }
-    function playMusic() {
-        if (backgroundMusic && !musicStarted) {
-            backgroundMusic.volume = 0.2;
-            backgroundMusic.play().catch(e => console.error("La música necesita interacción del usuario para empezar."));
-            musicStarted = true;
+    if (backgroundMusic) {
+        if (localStorage.getItem('musicMuted') === 'true') {
+            backgroundMusic.muted = true;
+            muteBtn.textContent = '🔇';
+        } else {
+            backgroundMusic.muted = false;
+            muteBtn.textContent = '🔊';
         }
+        function playMusic() {
+            if (backgroundMusic && !musicStarted) {
+                backgroundMusic.volume = 0.2;
+                backgroundMusic.play().catch(e => console.error("La música necesita interacción del usuario para empezar."));
+                musicStarted = true;
+            }
+        }
+        document.body.addEventListener('click', playMusic, { once: true });
+        muteBtn.addEventListener('click', (event) => {
+            event.stopPropagation();
+            if (!musicStarted) playMusic();
+            backgroundMusic.muted = !backgroundMusic.muted;
+            muteBtn.textContent = backgroundMusic.muted ? '🔇' : '🔊';
+            localStorage.setItem('musicMuted', backgroundMusic.muted);
+        });
     }
-    document.body.addEventListener('click', playMusic, { once: true });
-    muteBtn.addEventListener('click', (event) => {
-        event.stopPropagation();
-        if (!musicStarted) playMusic();
-        backgroundMusic.muted = !backgroundMusic.muted;
-        muteBtn.textContent = backgroundMusic.muted ? '🔇' : '🔊';
-        localStorage.setItem('musicMuted', backgroundMusic.muted);
-    });
 
     // --- FUNCIONES AUXILIARES ---
     const showLoading = (show) => document.getElementById('loading-overlay').classList.toggle('hidden', !show);
@@ -101,9 +111,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const apiRequest = async (endpoint, options = {}, showLoader = true) => {
         if (showLoader) showLoading(true);
         try {
-            const headers = { 'Content-Type': 'application/json', ...options.headers };
-            if (state.selectedHeroId) headers['x-user-id'] = state.selectedHeroId;
+            const currentToken = localStorage.getItem('authToken');
+            const headers = {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${currentToken}`,
+                ...options.headers
+            };
+            
+            if (state.selectedHeroId) {
+                headers['x-user-id'] = state.selectedHeroId;
+            }
+
             const response = await fetch(`${API_BASE_URL}${endpoint}`, { ...options, headers });
+
+            if (response.status === 401) {
+                localStorage.clear();
+                window.location.href = '/welcome.html';
+                return;
+            }
+
             const responseData = await response.json();
             if (!response.ok) throw new Error(responseData.error || 'Ocurrió un error desconocido.');
             return responseData;
@@ -234,7 +260,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (status.estado === 'muerto') {
                 statusDisplay.innerHTML = `
                     <p><strong>Vida:</strong> ${status.vida} / 10 | <strong>Estado:</strong> ${status.estado}</p>
-                    <p style="text-align: center; font-style: italic; margin-top: 1rem;">"Lo único cierto para todos, es la muerte" - Chabelo 1510</p>
+                    <p style="text-align: center; font-style: italic; margin-top: 1rem;">"Lo único cierto para todos, es la muerte" - Luisito Comunica</p>
                 `;
                 petGif.src = PET_ACTION_GIFS.dead;
                 gameGrid.classList.add('hidden');
@@ -312,7 +338,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 avatarType: 'pet'
             });
-        } catch (error) { console.error('Fallo al cargar mascotas'); }
+        } catch (error) { console.error('Fallo al cargar mascotas', error); }
     }
 
     // --- EVENT LISTENERS ---
@@ -352,7 +378,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         if (target.id === 'go-to-welcome-btn') {
-            window.location.href = '/';
+            localStorage.clear();
+            window.location.href = '/welcome.html';
         }
 
         if (target.id === 'find-by-city-btn') {
@@ -518,6 +545,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- INICIALIZACIÓN ---
-    loadHeroes();
-    showScreen('hero');
+    if (token) {
+        loadHeroes();
+        showScreen('hero');
+    }
 });

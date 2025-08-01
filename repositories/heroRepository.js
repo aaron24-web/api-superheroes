@@ -1,6 +1,6 @@
 import { connectDB } from '../config/db.js';
+import { ObjectId } from 'mongodb'; // Importa ObjectId para consultar por el ID de usuario
 
-// Función para asegurar que el ID sea un número
 const toInt = id => parseInt(id, 10);
 
 async function getCollection() {
@@ -8,9 +8,11 @@ async function getCollection() {
     return db.collection('heroes');
 }
 
-async function getHeroes() {
+// MODIFICADO: Ahora filtra los héroes por el ID del usuario
+async function getHeroes(userId) {
     const collection = await getCollection();
-    return await collection.find({}).toArray();
+    // Busca solo los héroes cuyo campo 'userId' coincida con el del usuario logueado
+    return await collection.find({ userId: new ObjectId(userId) }).toArray();
 }
 
 async function getHeroById(id) {
@@ -18,11 +20,12 @@ async function getHeroById(id) {
     return await collection.findOne({ id: toInt(id) });
 }
 
-async function addHero(hero) {
+// MODIFICADO: Ahora asocia el nuevo héroe con el ID del usuario
+async function addHero(hero, userId) {
     const collection = await getCollection();
-    // Lógica para el autoincremento del ID
     const lastHero = await collection.find().sort({ id: -1 }).limit(1).toArray();
     hero.id = lastHero.length > 0 ? lastHero[0].id + 1 : 1;
+    hero.userId = new ObjectId(userId); // <-- Añade la referencia al usuario
 
     await collection.insertOne(hero);
     return hero;
@@ -40,4 +43,4 @@ async function deleteHero(id) {
     await collection.deleteOne({ id: toInt(id) });
 }
 
-export default { getHeroes, getHeroById, addHero, updateHero, deleteHero};
+export default { getHeroes, getHeroById, addHero, updateHero, deleteHero };

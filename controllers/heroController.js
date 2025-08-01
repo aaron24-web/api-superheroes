@@ -2,31 +2,37 @@ import express from "express";
 import { check, validationResult } from 'express-validator';
 import heroServices from "../services/heroServices.js";
 import Hero from "../models/heroModel.js";
+import { protect } from '../middleware/authMiddleware.js'; // <-- IMPORTA LA PROTECCIÓN
 
-// --- ESTA ES LA LÍNEA QUE FALTABA ---
 const router = express.Router();
 
-// Llama a getAllHeroes que ahora incluye la mascota
+// APLICA LA PROTECCIÓN A TODAS LAS RUTAS DE HÉROES
+// Solo los usuarios con un token válido podrán acceder a estas rutas.
+router.use(protect);
+
+// GET /heroes - AHORA OBTIENE SÓLO LOS HÉROES DEL USUARIO LOGUEADO
 router.get("/heroes", async (req, res) => {
     try {
-        const heroes = await heroServices.getAllHeroes();
+        // Pasa el ID del usuario (obtenido del token) al servicio para filtrar
+        const heroes = await heroServices.getAllHeroes(req.user.userId);
         res.json(heroes);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
 
-// Llama a getHeroById que ahora incluye la mascota
+// GET /heroes/:id - Obtiene un héroe específico (ya está protegido)
 router.get("/heroes/:id", async (req, res) => {
     try {
         const hero = await heroServices.getHeroById(req.params.id);
+        // Opcional: podrías añadir una capa extra de seguridad para verificar que este héroe le pertenece al usuario.
         res.json(hero);
     } catch (error) {
         res.status(404).json({ error: error.message });
     }
 });
 
-// Ruta para crear un nuevo héroe
+// POST /heroes - AHORA CREA EL HÉROE ASOCIADO AL USUARIO LOGUEADO
 router.post("/heroes",
     [
         check('name').not().isEmpty().withMessage('El nombre es requerido'),
@@ -40,14 +46,15 @@ router.post("/heroes",
         try {
             const { name, alias, city, team } = req.body;
             const newHero = new Hero(null, name, alias, city, team);
-            const addedHero = await heroServices.addHero(newHero);
+            // Pasa el ID del usuario del token para asociar el nuevo héroe
+            const addedHero = await heroServices.addHero(newHero, req.user.userId);
             res.status(201).json(addedHero);
         } catch (error) {
             res.status(500).json({ error: error.message });
         }
 });
 
-// Ruta para actualizar un héroe por su ID
+// PUT /heroes/:id - Actualiza un héroe (ya está protegido)
 router.put("/heroes/:id", async (req, res) => {
     try {
         const updatedHero = await heroServices.updateHero(req.params.id, req.body);
@@ -57,7 +64,7 @@ router.put("/heroes/:id", async (req, res) => {
     }
 });
 
-// Ruta para eliminar un héroe por su ID
+// DELETE /heroes/:id - Elimina un héroe (ya está protegido)
 router.delete('/heroes/:id', async (req, res) => {
     try {
         const result = await heroServices.deleteHero(req.params.id);
@@ -67,17 +74,18 @@ router.delete('/heroes/:id', async (req, res) => {
     }
 });
 
-// Ruta para buscar héroes por ciudad
+// GET /heroes/city/:city - Busca héroes por ciudad (ya está protegido)
 router.get('/heroes/city/:city', async (req, res) => {
   try {
-    const heroes = await heroServices.findHeroesByCity(req.params.city);
+    // El servicio deberá ser modificado para aceptar también el userId si quieres que la búsqueda sea solo dentro de los héroes del usuario.
+    const heroes = await heroServices.findHeroesByCity(req.params.city, req.user.userId);
     res.json(heroes);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Ruta para enfrentar a un villano
+// POST /heroes/:id/enfrentar - Ruta de ejemplo (ya está protegida)
 router.post('/heroes/:id/enfrentar', async (req, res) => {
   try {
     const result = await heroServices.faceVillain(req.params.id, req.body.villain);
