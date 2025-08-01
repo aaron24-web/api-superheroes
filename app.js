@@ -18,26 +18,27 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// --- ESTE ES EL ORDEN CORRECTO ---
+// --- ESTE ES EL ORDEN CORRECTO Y CORREGIDO ---
 
-// 1. Rutas de la interfaz (archivos estáticos y página de bienvenida)
-// Esto se sirve PRIMERO para que no pida autenticación para imágenes, CSS, etc.
-app.use(express.static('public'));
+// 1. Ruta de bienvenida (MÁXIMA PRIORIDAD)
+// Cuando alguien visita la raíz, siempre se sirve welcome.html primero.
 app.get('/', (req, res) => {
     res.sendFile('public/welcome.html', { root: '.' });
 });
 
-// 2. Rutas de la API (con el prefijo /api)
-// Esto se sirve DESPUÉS. Todas estas rutas sí requerirán autenticación.
+// 2. Archivos estáticos (imágenes, CSS, otros HTML)
+// Se sirve DESPUÉS para que la ruta de arriba tenga prioridad.
+app.use(express.static('public'));
+
+// 3. Rutas de la API (con el prefijo /api)
 app.use('/api', authRoutes);
 app.use('/api', heroRoutes);
 app.use('/api', petRoutes);
 app.use('/api', gameRoutes);
 app.use('/api', accessoryRoutes);
 
-// 3. Documentación de Swagger (al final)
+// 4. Documentación de Swagger (al final)
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-
 
 // El puerto ahora lo tomará de una variable de entorno que Render nos da.
 const PORT = process.env.PORT || 3000;
