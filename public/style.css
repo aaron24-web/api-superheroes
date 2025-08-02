@@ -431,3 +431,50 @@ button.danger:hover {
 .hidden {
     display: none !important;
 }
+
+/* --- Estilos para la Selección de Minijuegos --- */
+.minigame-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+.minigame-option {
+    padding: 1.5rem;
+    font-size: 1.2rem;
+    background-color: var(--primary-color);
+    color: white;
+}
+
+/* --- Estilos para las Pantallas de Juego --- */
+.game-container {
+    padding: 1rem;
+    background-color: rgba(0, 0, 0, 0.7); /* Fondo oscuro para el juego */
+    border-radius: 12px;
+}
+.game-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: white;
+    margin-bottom: 1rem;
+}
+.game-instructions {
+    text-align: center;
+    color: #ccc;
+    margin-top: 0.5rem;
+}
+canvas {
+    background-color: #222;
+    width: 100%;
+    border-radius: 8px;
+}
+
+/* --- Estilos para los Controles de Minijuegos (CORREGIDO) --- */
+.game-container .game-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 0.5rem;
+}

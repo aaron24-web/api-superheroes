@@ -18,29 +18,30 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// --- ESTE ES EL ORDEN CORRECTO Y CORREGIDO ---
+// --- ORDEN CORRECTO DE RUTAS ---
 
-// 1. Ruta de bienvenida (MÁXIMA PRIORIDAD)
-// Cuando alguien visita la raíz, siempre se sirve welcome.html primero.
+// 1. Ruta de bienvenida (siempre primero)
 app.get('/', (req, res) => {
     res.sendFile('public/welcome.html', { root: '.' });
 });
 
-// 2. Archivos estáticos (imágenes, CSS, otros HTML)
-// Se sirve DESPUÉS para que la ruta de arriba tenga prioridad.
+// 2. Servidor de archivos estáticos (imágenes, CSS, JS, videos)
+// Esto asegura que archivos como fondo2.mp4 se encuentren correctamente.
 app.use(express.static('public'));
 
 // 3. Rutas de la API (con el prefijo /api)
+// Todas estas rutas requieren lógica del servidor.
 app.use('/api', authRoutes);
 app.use('/api', heroRoutes);
 app.use('/api', petRoutes);
 app.use('/api', gameRoutes);
 app.use('/api', accessoryRoutes);
 
-// 4. Documentación de Swagger (al final)
+// 4. Documentación de Swagger
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-// El puerto ahora lo tomará de una variable de entorno que Render nos da.
+// --- FIN DEL ORDEN CORRECTO ---
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en el puerto ${PORT}`);

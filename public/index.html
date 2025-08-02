@@ -70,10 +70,48 @@
                     <button id="buy-accessory-btn">Comprar 🛒</button>
                     <button id="equip-accessory-btn">Equipar 🧢</button>
                 </div>
+                <button id="play-minigames-btn" class="primary" style="grid-column: 1 / -1;">Jugar Minijuegos</button>
             </div>
             <button id="logout-btn" class="danger full-width">Terminar Juego</button>
         </section>
-    </main>
+
+        <section id="minigame-selection-screen" class="screen">
+            <button class="back-btn" data-target="game">← Volver</button>
+            <div class="screen-header">
+                <h1>Elige un Juego</h1>
+            </div>
+            <div class="minigame-list">
+                <button class="minigame-option" data-game="pacman">Super-Cat Pacman</button>
+                <button class="minigame-option" data-game="fishfall">Lluvia de Peces</button>
+            </div>
+        </section>
+
+        <section id="pacman-screen" class="screen game-container">
+            <div class="game-info">
+                <span>Vidas: <span id="pacman-lives">3</span></span>
+                <span>Tiempo: <span id="pacman-timer">120</span>s</span>
+            </div>
+            <canvas id="pacman-canvas"></canvas>
+            <div id="pacman-controls" class="game-controls">
+                <p class="game-instructions">Usa las flechas para moverte</p>
+                <button id="pacman-restart-btn" class="secondary hidden">Reiniciar</button> 
+                <button class="back-btn" data-target="minigame-selection">← Salir</button>
+            </div>
+        </section>
+
+        <section id="fishfall-screen" class="screen game-container">
+            <div class="game-info">
+                 <span>Vidas: <span id="fishfall-lives">3</span></span>
+                 <span>Peces: <span id="fishfall-score">0</span></span>
+                 <span>Tiempo: <span id="fishfall-timer">50</span>s</span>
+            </div>
+            <canvas id="fishfall-canvas"></canvas>
+            <div id="fishfall-controls" class="game-controls">
+                <p class="game-instructions">Usa las flechas ← → para moverte</p>
+                <button id="fishfall-restart-btn" class="secondary hidden">Reiniciar</button>
+                <button class="back-btn" data-target="minigame-selection">← Salir</button>
+            </div>
+        </section>
 
     <div id="accessory-modal" class="modal-overlay hidden">
         <div class="modal-content">
@@ -96,5 +134,7 @@
     <button id="mute-btn">🔇</button>
 
     <script src="app.js"></script>
+    <script src="/games/pacman.js"></script>
+    <script src="/games/fishfall.js"></script>
 </body>
 </html>

@@ -110,4 +110,13 @@ router.post("/game/equip/:accessoryId", async (req, res) => {
     }
 });
 
+router.post("/game/win", async (req, res) => {
+    try {
+        const result = await gameService.winMinigame();
+        res.status(200).json(result);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
 export default router;
