@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- CONFIGURACIÓN ---
-    const API_BASE_URL = '/api'; // <-- ESTA ES LA CORRECCIÓN CLAVE
+    const API_BASE_URL = '/api'; // <-- CORRECCIÓN DE LA RUTA
 
     // --- AUTENTICACIÓN ---
     const token = localStorage.getItem('authToken');
@@ -328,7 +328,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const pets = await apiRequest('/pets');
             renderList(petList, pets, {
-                display: pet => `${pet.name} (${pet.type}) - [${pet.status}]`,
+                display: pet => `${pet.name} (${pet.type})`, // <-- AQUÍ SE HIZO EL CAMBIO
                 data: ['name', 'type', 'superpower', 'status'],
                 emptyText: 'Este héroe no tiene mascotas. ¡Crea una!',
                 onSelect: pet => {

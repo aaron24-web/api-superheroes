@@ -1,5 +1,5 @@
 import petRepository from '../repositories/petRepository.js';
-import accessoryRepository from '../repositories/accessoryRepository.js'; // Importamos el nuevo repositorio
+import accessoryRepository from '../repositories/accessoryRepository.js';
 
 // --- Estado del Juego y Constantes ---
 let activePetId = null;
@@ -15,9 +15,6 @@ const PERSONALITY_DECAY_RATE_PER_30S = 1;
 
 // --- Funciones Auxiliares ---
 
-/**
- * Actualiza el estado de la mascota ('excelente', 'muerto', etc.) basado en sus puntos de vida.
- */
 function updatePetStatus(pet) {
     if (pet.health <= 0) {
         pet.status = 'muerto';
@@ -31,21 +28,13 @@ function updatePetStatus(pet) {
     }
 }
 
-/**
- * Guarda el estado completo y actualizado de una mascota en el archivo JSON.
- */
+// --- FUNCIÓN CORREGIDA ---
+// Nos aseguramos de que el estado se guarde correctamente sin perder la mascota activa.
 async function savePetState(petToSave) {
-    const allPets = await petRepository.getPets();
-    const index = allPets.findIndex(p => p.id === petToSave.id);
-    if (index !== -1) {
-        allPets[index] = petToSave;
-        await petRepository.savePets(allPets);
-    }
+    await petRepository.updatePet(petToSave.id, petToSave);
 }
 
-/**
- * Revisa si los accesorios equipados han expirado y los desequipa.
- */
+
 function checkExpiredAccessories(pet) {
     const now = new Date();
     for (const type in pet.equippedAccessories) {
@@ -60,9 +49,6 @@ function checkExpiredAccessories(pet) {
     }
 }
 
-/**
- * Calcula y aplica el decaimiento de vida pasivo basado en el tiempo transcurrido.
- */
 function applyTimeBasedDecay(pet) {
     const now = new Date();
     const lastUpdated = new Date(pet.lastUpdated);
@@ -88,13 +74,10 @@ function applyTimeBasedDecay(pet) {
 
 // --- Lógica Principal del Servicio de Juego ---
 
-/**
- * Función CLAVE: Obtiene la mascota activa y aplica todas las actualizaciones de estado pasivas.
- */
 async function getActivePet(checkIfDead = true) {
     if (!activePetId) throw new Error('Debes seleccionar una mascota primero con /game/select-pet/{id}');
     
-    let pet = (await petRepository.getPets()).find(p => p.id === activePetId);
+    let pet = await petRepository.getPetById(activePetId);
     if (!pet) {
         activePetId = null;
         throw new Error('La mascota activa ya no existe. Por favor, selecciona otra.');
@@ -111,10 +94,14 @@ async function getActivePet(checkIfDead = true) {
     return pet;
 }
 
-async function selectPet(petId) {
-    const pet = (await petRepository.getPets()).find(p => p.id === parseInt(petId));
-    if (!pet) throw new Error('La mascota seleccionada no existe.');
-    
+async function selectPet(petId, heroId) {
+    const pet = await petRepository.getPetById(parseInt(petId));
+    if (!pet) {
+        throw new Error('La mascota seleccionada no existe.');
+    }
+    if (pet.heroId !== heroId) {
+        throw new Error('Esta mascota no pertenece al héroe seleccionado.');
+    }
     activePetId = parseInt(petId);
     return pet;
 }
@@ -145,52 +132,41 @@ async function getStatus() {
 
 async function feedPet() {
     let pet = await getActivePet();
-
-    // **LÓGICA RESTAURADA**
     if (pet.health >= 10) {
         pet.illness = 'dolor de estomago';
         pet.health -= SICKNESSES['dolor de estomago'];
         updatePetStatus(pet);
         await savePetState(pet);
-        // Lanzamos un error para que la respuesta sea clara
         throw new Error(`${pet.name} ya estaba lleno. Ahora tiene dolor de estómago y pierde 1 de vida.`);
     }
-
     pet.health = Math.min(10, pet.health + 3);
     pet.coins += 5;
     pet.lastUpdated = new Date().toISOString();
     updatePetStatus(pet);
     await savePetState(pet);
-
     return { message: `Has alimentado a ${pet.name}.`, estado_actual: await getStatus() };
 }
 
 async function walkPet() {
     let pet = await getActivePet();
-
-    // **LÓGICA RESTAURADA**
     if (pet.health >= 10) {
         pet.illness = 'dolor de estomago';
         pet.health -= SICKNESSES['dolor de estomago'];
         updatePetStatus(pet);
         await savePetState(pet);
-        // Lanzamos un error para que la respuesta sea clara
         throw new Error(`${pet.name} ya tenía energía al máximo. Se fatigó y ahora tiene dolor de estómago.`);
     }
-
     pet.health = Math.min(10, pet.health + 2);
     pet.coins += 3;
     pet.lastUpdated = new Date().toISOString();
     updatePetStatus(pet);
     await savePetState(pet);
-
     return { message: `${pet.name} ha salido a pasear.`, estado_actual: await getStatus() };
 }
 
 async function curePet() {
     let pet = await getActivePet(false);
     if (!pet.illness && pet.health > 0) return { message: `${pet.name} no está enfermo.`, estado_actual: await getStatus() };
-    
     pet.illness = null;
     if (pet.health <= 0) pet.health = 1;
     pet.lastUpdated = new Date().toISOString();
@@ -202,7 +178,6 @@ async function curePet() {
 async function revertPersonality() {
     let pet = await getActivePet();
     if (pet.personality === pet.originalPersonality) return { message: `${pet.name} ya tiene su personalidad original.`, pet: await getStatus() };
-    
     pet.personality = pet.originalPersonality;
     pet.lastUpdated = new Date().toISOString();
     await savePetState(pet);
@@ -220,15 +195,12 @@ async function buyAccessory(accessoryId) {
     let pet = await getActivePet();
     const accessories = await accessoryRepository.getAccessories();
     const accessoryToBuy = accessories.find(a => a.id === parseInt(accessoryId));
-
     if (!accessoryToBuy) throw new Error('El accesorio no existe.');
     if (pet.inventory.includes(accessoryToBuy.id)) throw new Error('Ya posees este accesorio.');
     if (pet.coins < accessoryToBuy.costo) throw new Error(`No tienes suficientes monedas. Necesitas ${accessoryToBuy.costo}, pero tienes ${pet.coins}.`);
-
     pet.coins -= accessoryToBuy.costo;
     pet.inventory.push(accessoryToBuy.id);
     pet.lastUpdated = new Date().toISOString();
-    
     await savePetState(pet);
     return { message: `Has comprado "${accessoryToBuy.nombre}".`, estado_actual: await getStatus() };
 }
@@ -237,16 +209,12 @@ async function equipAccessory(accessoryId) {
     let pet = await getActivePet();
     const accessories = await accessoryRepository.getAccessories();
     const accessoryToEquip = accessories.find(a => a.id === parseInt(accessoryId));
-
     if (!accessoryToEquip) throw new Error('El accesorio no existe.');
-
     if (accessoryToEquip.costo > 0 && !pet.inventory.includes(accessoryToEquip.id)) {
         throw new Error('No posees este accesorio. Cómpralo primero.');
     }
-    
-    const { tipo } = accessoryToEquip; // 'lentes', 'ropa', 'sombrero'
+    const { tipo } = accessoryToEquip;
     if (!pet.equippedAccessories.hasOwnProperty(tipo)) throw new Error('Tipo de accesorio no válido.');
-    
     pet.equippedAccessories[tipo] = {
         id: accessoryToEquip.id,
         nombre: accessoryToEquip.nombre,
@@ -254,9 +222,21 @@ async function equipAccessory(accessoryId) {
         equipTimestamp: new Date().toISOString()
     };
     pet.lastUpdated = new Date().toISOString();
-    
     await savePetState(pet);
     return { message: `Has equipado a ${pet.name} con "${accessoryToEquip.nombre}".`, estado_actual: await getStatus() };
+}
+
+async function revivePet() {
+    let pet = await getActivePet(false);
+    if (pet.status !== 'muerto') {
+        throw new Error(`${pet.name} no está muerto.`);
+    }
+    pet.health = 5;
+    pet.illness = null;
+    pet.lastUpdated = new Date().toISOString();
+    updatePetStatus(pet);
+    await savePetState(pet);
+    return { message: `¡${pet.name} ha vuelto a la vida!`, pet: await getStatus() };
 }
 
 export default {
@@ -269,5 +249,6 @@ export default {
     revertPersonality,
     assignInitialPersonality,
     buyAccessory,
-    equipAccessory
+    equipAccessory,
+    revivePet
 };
