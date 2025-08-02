@@ -74,7 +74,7 @@
             </div>
             <button id="logout-btn" class="danger full-width">Terminar Juego</button>
         </section>
-
+        
         <section id="minigame-selection-screen" class="screen">
             <button class="back-btn" data-target="game">← Volver</button>
             <div class="screen-header">
@@ -92,10 +92,12 @@
                 <span>Tiempo: <span id="pacman-timer">120</span>s</span>
             </div>
             <canvas id="pacman-canvas"></canvas>
-            <div id="pacman-controls" class="game-controls">
+            <div class="game-controls">
                 <p class="game-instructions">Usa las flechas para moverte</p>
-                <button id="pacman-restart-btn" class="secondary hidden">Reiniciar</button> 
-                <button class="back-btn" data-target="minigame-selection">← Salir</button>
+                <div>
+                    <button id="pacman-restart-btn" class="secondary hidden">Reiniciar</button> 
+                    <button class="back-btn" data-target="minigameSelection">← Salir</button>
+                </div>
             </div>
         </section>
 
@@ -106,28 +108,18 @@
                  <span>Tiempo: <span id="fishfall-timer">50</span>s</span>
             </div>
             <canvas id="fishfall-canvas"></canvas>
-            <div id="fishfall-controls" class="game-controls">
+            <div class="game-controls">
                 <p class="game-instructions">Usa las flechas ← → para moverte</p>
-                <button id="fishfall-restart-btn" class="secondary hidden">Reiniciar</button>
-                <button class="back-btn" data-target="minigame-selection">← Salir</button>
+                <div>
+                    <button id="fishfall-restart-btn" class="secondary hidden">Reiniciar</button>
+                    <button class="back-btn" data-target="minigameSelection">← Salir</button>
+                </div>
             </div>
         </section>
-
-    <div id="accessory-modal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <button id="close-modal-btn" class="close-btn">&times;</button>
-            <h2>Tienda / Inventario</h2>
-            <div id="accessory-list"></div>
-        </div>
-    </div>
-    <div id="edit-modal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <button id="close-edit-modal-btn" class="close-btn">&times;</button>
-            <h2 id="edit-modal-title">Editar</h2>
-            <form id="edit-form"></form>
-        </div>
-    </div>
-
+    </main>
+    
+    <div id="accessory-modal" class="modal-overlay hidden"></div>
+    <div id="edit-modal" class="modal-overlay hidden"></div>
     <div id="loading-overlay" class="hidden"><div class="spinner"></div></div>
     <div id="alert-container"></div>
     <audio id="background-music" src="/audio/audio1.mp3" loop></audio>

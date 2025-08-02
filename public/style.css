@@ -239,11 +239,12 @@ button.danger:hover {
     display: none !important;
 }
 
+/* --- Estilos para las Alertas (CORREGIDO) --- */
 #alert-container {
     position: fixed;
     top: 20px;
     right: 20px;
-    z-index: 1001;
+    z-index: 1012;
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -268,7 +269,7 @@ button.danger:hover {
         transform: translateX(0);
     }
 }
-/* --- Estilo para el botón de Mute --- */
+/* --- Estilos para el botón de Mute (CORREGIDO) --- */
 #mute-btn {
     position: fixed;
     bottom: 20px;
@@ -281,11 +282,12 @@ button.danger:hover {
     font-size: 1.5rem;
     border: 2px solid white;
     cursor: pointer;
-    z-index: 1002;
+    z-index: 1011;
     display: flex;
     justify-content: center;
     align-items: center;
 }
+
 
 #mute-btn:hover {
     background-color: rgba(0, 0, 0, 0.7);
@@ -449,7 +451,7 @@ button.danger:hover {
 /* --- Estilos para las Pantallas de Juego --- */
 .game-container {
     padding: 1rem;
-    background-color: rgba(0, 0, 0, 0.7); /* Fondo oscuro para el juego */
+    background-color: rgba(255, 255, 255, 0.95);
     border-radius: 12px;
 }
 .game-info {
@@ -457,13 +459,13 @@ button.danger:hover {
     justify-content: space-between;
     font-size: 1.2rem;
     font-weight: 600;
-    color: white;
+    color: var(--dark-text);
     margin-bottom: 1rem;
 }
 .game-instructions {
     text-align: center;
-    color: #ccc;
-    margin-top: 0.5rem;
+    color: #6c757d;
+    margin: 0.5rem 0;
 }
 canvas {
     background-color: #222;

@@ -70,11 +70,11 @@ document.addEventListener('fishfallGame', (e) => {
         }
     }
 
-    function endGame(isWinner) {
+     function endGame(isWinner) {
         clearInterval(gameInterval);
         clearInterval(timerInterval);
         if (isWinner) {
-            onWin(score); // Pass the score to the win function
+            onWin(score); // <-- Pasa el puntaje (los peces atrapados) a la función de victoria
         } else {
             alert('¡Has perdido!');
             restartBtn.classList.remove('hidden');

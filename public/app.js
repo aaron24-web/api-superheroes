@@ -355,11 +355,28 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) { console.error('Fallo al cargar mascotas', error); }
     }
 
-    // --- EVENT LISTENERS ---
+    // --- NUEVA FUNCIÓN DE VICTORIA ---
+    async function handleWin(coinsEarned = 10) { // Valor por defecto de 10
+        showAlert(`¡Felicidades, has ganado ${coinsEarned} monedas!`, 'success');
+        try {
+            // Llama a la API para añadir las monedas
+            await apiRequest('/game/win', { 
+                method: 'POST',
+                body: JSON.stringify({ coins: coinsEarned })
+            });
+        } catch (error) {
+            console.error("Error al registrar la victoria:", error);
+        }
+        showScreen('game'); // Vuelve a la pantalla principal del juego
+        updateGameStatus();
+    }
+
     document.body.addEventListener('click', async (e) => {
         const target = e.target;
+
+        // CORREGIDO: Avisa a los juegos que deben terminar antes de salir
         if (target.matches('.back-btn')) {
-            document.dispatchEvent(new CustomEvent('endGame'));
+            document.dispatchEvent(new CustomEvent('endGame')); 
             clearInterval(gameStatusInterval);
             const targetScreen = target.dataset.target;
             if (targetScreen === 'game') updateGameStatus();
@@ -531,10 +548,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const game = target.dataset.game;
             if (game === 'pacman') {
                 showScreen('pacman');
-                document.dispatchEvent(new CustomEvent('pacmanGame', { detail: { onWin: () => handleWin(0) } }));
+                document.dispatchEvent(new CustomEvent('pacmanGame', { detail: { onWin: () => handleWin(10) } })); // Pacman siempre da 10
             } else if (game === 'fishfall') {
                 showScreen('fishfall');
-                document.dispatchEvent(new CustomEvent('fishfallGame', { detail: { onWin: handleWin } }));
+                document.dispatchEvent(new CustomEvent('fishfallGame', { detail: { onWin: handleWin } })); // Fishfall pasa las monedas
             }
         }
     });

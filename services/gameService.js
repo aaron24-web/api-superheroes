@@ -239,11 +239,11 @@ async function revivePet() {
     return { message: `¡${pet.name} ha vuelto a la vida!`, pet: await getStatus() };
 }
 
-async function winMinigame() {
+async function winMinigame(coinsEarned) { // Acepta las monedas ganadas
     let pet = await getActivePet(false);
-    pet.coins += 10;
+    pet.coins += coinsEarned; // Suma las monedas ganadas
     await savePetState(pet);
-    return { message: `¡Has ganado 10 monedas por ganar el juego!`, coins: pet.coins };
+    return { message: `¡Has ganado ${coinsEarned} monedas por ganar el juego!`, coins: pet.coins };
 }
 
 export default {
