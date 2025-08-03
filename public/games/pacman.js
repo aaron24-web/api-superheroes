@@ -1,11 +1,8 @@
-// Creamos un objeto para mantener una referencia a los intervalos y manejadores de eventos.
-// Esto nos permite limpiarlos de forma segura entre partidas.
+// Objeto para mantener una referencia a los intervalos y manejadores de eventos.
 const pacmanGameManager = {
     gameInterval: null,
     timerInterval: null,
     keyHandler: null,
-    // Usaremos esta bandera para asegurarnos de que el código de limpieza se ejecute solo una vez por carga.
-    isInitialized: false 
 };
 
 document.addEventListener('pacmanGame', (e) => {
@@ -14,6 +11,8 @@ document.addEventListener('pacmanGame', (e) => {
     const ctx = canvas.getContext('2d');
     let startBtn = document.getElementById('pacman-start-btn');
     let restartBtn = document.getElementById('pacman-restart-btn');
+    // MODIFICACIÓN: Se cambió el selector para apuntar al botón correcto.
+    const exitBtn = document.querySelector('#pacman-screen .back-btn'); 
     const livesEl = document.getElementById('pacman-lives');
     const timerEl = document.getElementById('pacman-timer');
     const { onWin } = e.detail;
@@ -30,8 +29,6 @@ document.addEventListener('pacmanGame', (e) => {
     const enemyImg = new Image();
     enemyImg.src = '/images/pet_actions/dog.png';
 
-    // --- FUNCIÓN DE LIMPIEZA ---
-    // Esta función detiene todos los procesos del juego y elimina los listeners.
     function cleanup() {
         clearInterval(pacmanGameManager.gameInterval);
         clearInterval(pacmanGameManager.timerInterval);
@@ -42,22 +39,17 @@ document.addEventListener('pacmanGame', (e) => {
     }
 
     // --- LÓGICA PRINCIPAL ---
-
-    // 1. Limpiamos cualquier partida anterior ANTES de hacer nada más.
     cleanup();
 
-    // 2. Reseteamos los listeners de los botones para evitar duplicados.
-    // La forma más segura es clonar el botón para eliminar todos sus listeners anteriores.
     let newStartBtn = startBtn.cloneNode(true);
     startBtn.parentNode.replaceChild(newStartBtn, startBtn);
-    startBtn = newStartBtn; // Actualizamos la referencia
+    startBtn = newStartBtn;
 
     let newRestartBtn = restartBtn.cloneNode(true);
     restartBtn.parentNode.replaceChild(newRestartBtn, restartBtn);
-    restartBtn = newRestartBtn; // Actualizamos la referencia
+    restartBtn = newRestartBtn;
 
     // --- Funciones del Juego ---
-
     function draw() {
         if (!canvas || !ctx) return;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -69,7 +61,6 @@ document.addEventListener('pacmanGame', (e) => {
 
     function update() {
         if (gameOver) return;
-        // Lógica de movimiento del jugador
         player.x += player.dx;
         player.y += player.dy;
         if (player.x < 0) player.x = 0;
@@ -77,13 +68,11 @@ document.addEventListener('pacmanGame', (e) => {
         if (player.y < 0) player.y = 0;
         if (player.y + player.size > canvas.height) player.y = canvas.height - player.size;
 
-        // Lógica de movimiento del enemigo
         if (enemy.x < player.x) enemy.x += enemy.speed;
         if (enemy.x > player.x) enemy.x -= enemy.speed;
         if (enemy.y < player.y) enemy.y += enemy.speed;
         if (enemy.y > player.y) enemy.y -= enemy.speed;
 
-        // Detección de colisión
         if (!player.invincible && player.x < enemy.x + enemy.size && player.x + player.size > enemy.x &&
             player.y < enemy.y + enemy.size && player.y + player.size > enemy.y) {
             lives--;
@@ -106,9 +95,11 @@ document.addEventListener('pacmanGame', (e) => {
     }
 
     function endGame(isWinner) {
-        if (gameOver) return; // Evita que la función se ejecute varias veces
+        if (gameOver) return;
         gameOver = true;
-        cleanup(); // Usamos nuestra función de limpieza aquí también.
+        cleanup(); 
+        
+        exitBtn.classList.remove('hidden'); // Muestra el botón Salir
 
         if (isWinner) {
             onWin(10);
@@ -123,10 +114,10 @@ document.addEventListener('pacmanGame', (e) => {
     }
     
     function resetGame() {
-        cleanup(); // Limpia todo antes de resetear
+        cleanup();
         gameOver = true;
         lives = 3;
-        timeLeft = 10;
+        timeLeft = 30;
         livesEl.textContent = lives;
         timerEl.textContent = timeLeft;
         player = { x: 50, y: 50, size: 20, speed: 2, dx: 0, dy: 0, invincible: false };
@@ -134,28 +125,27 @@ document.addEventListener('pacmanGame', (e) => {
         
         restartBtn.classList.add('hidden');
         startBtn.classList.remove('hidden');
-        draw(); // Dibuja el estado inicial
+        exitBtn.classList.remove('hidden'); // Muestra el botón Salir en el inicio
         
-        // Vuelve a añadir los listeners a los botones reseteados
+        draw(); 
         startBtn.addEventListener('click', startGame);
         restartBtn.addEventListener('click', resetGame);
-        // Y el listener de teclado
         addKeyListeners();
     }
 
     function startGame() {
-        if (!gameOver) return; // Evita iniciar un juego que ya está en curso
+        if (!gameOver) return;
         gameOver = false;
+        
         startBtn.classList.add('hidden');
         restartBtn.classList.add('hidden');
+        exitBtn.classList.add('hidden'); // Oculta el botón Salir durante la partida
         
-        // Guardamos las referencias en nuestro objeto `manager`
         pacmanGameManager.gameInterval = setInterval(update, 20);
         pacmanGameManager.timerInterval = setInterval(countdown, 1000);
     }
 
     function addKeyListeners() {
-        // Definimos la función de manejo de teclas
         pacmanGameManager.keyHandler = (e) => {
             if (gameOver) return;
             if (e.type === 'keydown') {
@@ -168,11 +158,9 @@ document.addEventListener('pacmanGame', (e) => {
                 if (e.key === 'ArrowUp' || e.key === 'ArrowDown') player.dy = 0;
             }
         };
-        // Añadimos los listeners al documento
         document.addEventListener('keydown', pacmanGameManager.keyHandler);
         document.addEventListener('keyup', pacmanGameManager.keyHandler);
     }
     
-    // 3. Inicia el juego en un estado limpio
     resetGame();
 });

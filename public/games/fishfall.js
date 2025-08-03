@@ -12,6 +12,8 @@ document.addEventListener('fishfallGame', (e) => {
     const ctx = canvas.getContext('2d');
     let startBtn = document.getElementById('fishfall-start-btn');
     let restartBtn = document.getElementById('fishfall-restart-btn');
+    // MODIFICACIÓN: Se cambió el selector para apuntar al botón correcto.
+    const exitBtn = document.querySelector('#fishfall-screen .back-btn');
     const livesEl = document.getElementById('fishfall-lives');
     const timerEl = document.getElementById('fishfall-timer');
     const scoreEl = document.getElementById('fishfall-score');
@@ -31,8 +33,6 @@ document.addEventListener('fishfallGame', (e) => {
     const trashImg = new Image();
     trashImg.src = '/images/pet_actions/trash.png';
 
-    // --- FUNCIÓN DE LIMPIEZA ---
-    // Detiene todos los intervalos y elimina el listener de teclado.
     function cleanup() {
         clearInterval(fishfallGameManager.gameInterval);
         clearInterval(fishfallGameManager.timerInterval);
@@ -43,11 +43,8 @@ document.addEventListener('fishfallGame', (e) => {
     }
 
     // --- LÓGICA PRINCIPAL ---
-
-    // 1. Limpiamos cualquier partida anterior ANTES de hacer nada más.
     cleanup();
     
-    // 2. Reseteamos los listeners de los botones para evitar duplicados.
     let newStartBtn = startBtn.cloneNode(true);
     startBtn.parentNode.replaceChild(newStartBtn, startBtn);
     startBtn = newStartBtn;
@@ -57,7 +54,6 @@ document.addEventListener('fishfallGame', (e) => {
     restartBtn = newRestartBtn;
 
     // --- Funciones del Juego ---
-
     function createItem() {
         if (gameOver) return;
         items.push({
@@ -82,34 +78,27 @@ document.addEventListener('fishfallGame', (e) => {
 
     function update() {
         if (gameOver) return;
-
-        // Mover items y detectar colisiones
         for (let i = items.length - 1; i >= 0; i--) {
             const item = items[i];
             item.y += item.speed;
-
-            // Eliminar si sale de la pantalla
             if (item.y > canvas.height) {
                 items.splice(i, 1);
                 continue;
             }
-
-            // Detectar colisión con el jugador
             if (player.x < item.x + item.size && player.x + player.size > item.x &&
                 player.y < item.y + item.size && player.y + player.size > item.y) {
-                
                 if (item.type === 'trash') {
                     lives--;
                     livesEl.textContent = lives;
                     if (lives <= 0) {
                         endGame(false);
-                        return; // Salir del bucle si el juego terminó
+                        return;
                     }
                 } else {
                     score++;
                     scoreEl.textContent = score;
                 }
-                items.splice(i, 1); // Eliminar item al colisionar
+                items.splice(i, 1);
             }
         }
         draw();
@@ -123,9 +112,11 @@ document.addEventListener('fishfallGame', (e) => {
     }
 
     function endGame(isWinner) {
-        if (gameOver) return; // Evita que se llame múltiples veces
+        if (gameOver) return;
         gameOver = true;
-        cleanup(); // Limpia todos los intervalos y listeners
+        cleanup();
+
+        exitBtn.classList.remove('hidden'); // Muestra el botón Salir
 
         if (isWinner) {
             onWin(10 + score);
@@ -138,12 +129,12 @@ document.addEventListener('fishfallGame', (e) => {
     }
 
     function resetGame() {
-        cleanup(); // Limpia el estado anterior
+        cleanup();
         gameOver = true;
         lives = 3;
-        timeLeft = 40; // Tiempo ajustado
+        timeLeft = 40;
         score = 0;
-        items = []; // Vacía el array de items
+        items = [];
         player.x = canvas.width / 2;
         
         livesEl.textContent = lives;
@@ -152,40 +143,37 @@ document.addEventListener('fishfallGame', (e) => {
         
         restartBtn.classList.add('hidden');
         startBtn.classList.remove('hidden');
+        exitBtn.classList.remove('hidden'); // Muestra el botón Salir en el inicio
         
-        draw(); // Dibuja el estado inicial
-
-        // Vuelve a añadir los listeners a los botones y al teclado
+        draw();
         startBtn.addEventListener('click', startGame);
         restartBtn.addEventListener('click', resetGame);
         addKeyListeners();
     }
 
     function startGame() {
-        if (!gameOver) return; // Previene múltiples inicios
+        if (!gameOver) return;
         gameOver = false;
+        
         startBtn.classList.add('hidden');
         restartBtn.classList.add('hidden');
+        exitBtn.classList.add('hidden'); // Oculta el botón Salir durante la partida
         
-        // Guardamos las referencias en nuestro objeto `manager`
         fishfallGameManager.gameInterval = setInterval(update, 20);
         fishfallGameManager.timerInterval = setInterval(countdown, 1000);
         fishfallGameManager.itemSpawnInterval = setInterval(createItem, 1500);
     }
 
     function addKeyListeners() {
-        // Define y guarda la referencia del manejador de teclas
         fishfallGameManager.keyHandler = e => {
             if (gameOver) return;
             if (e.key === 'ArrowRight') player.x += player.speed;
             if (e.key === 'ArrowLeft') player.x -= player.speed;
-            // Limita el movimiento del jugador dentro del canvas
             if (player.x < 0) player.x = 0;
             if (player.x + player.size > canvas.width) player.x = canvas.width - player.size;
         };
         document.addEventListener('keydown', fishfallGameManager.keyHandler);
     }
     
-    // Inicia el juego en un estado limpio
     resetGame();
 });
